@@ -1,0 +1,27 @@
+# When Apache DocumentRoot points at this folder (not `public/`), use this file.
+# Best practice: set DocumentRoot to `laravel-app/public` and rely only on `public/.htaccess`.
+
+DirectoryIndex public/index.php
+
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews
+    </IfModule>
+
+    RewriteEngine On
+
+    # If the site is in a subdirectory, uncomment and set the URL path to this folder:
+    # RewriteBase /ai-university-assessment-platform/laravel-app/
+
+    # Site root → front controller
+    RewriteRule ^$ public/index.php [L]
+
+    # If the request maps to a real file or directory under the project root, serve it
+    # (covers `/public/...` so we do not rewrite to `public/public/...`).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Otherwise route into `public/` (Laravel + `public/.htaccess` handle the rest)
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
