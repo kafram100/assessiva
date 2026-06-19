@@ -58,7 +58,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                1012 => env('MYSQL_ATTR_SSL_CA'), // 1012 is the value for PDO::MYSQL_ATTR_SSL_CA
+                1012 => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
@@ -78,7 +78,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                1012 => env('MYSQL_ATTR_SSL_CA'), // 1012 is the value for PDO::MYSQL_ATTR_SSL_CA
+                1012 => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
