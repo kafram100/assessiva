@@ -110,7 +110,7 @@ export default function QuestionFeedbackCard({ item, flags }) {
             ? Math.round(Number(item.ai_concept_coverage) * 100)
             : null;
 
-    const status = item.display_status || '—';
+    const status = item.display_status || '-';
     const missingTags = item.missing_concept_tags ?? [];
     const hasAiInsights =
         showAi &&
@@ -167,10 +167,10 @@ export default function QuestionFeedbackCard({ item, flags }) {
                                     {item.selected_option
                                         ? `${item.selected_option}${
                                               item.selected_option_text
-                                                  ? ` — ${item.selected_option_text}`
+                                                  ? ` - ${item.selected_option_text}`
                                                   : ''
                                           }`
-                                        : '—'}
+                                        : '-'}
                                 </dd>
                             </div>
                             {showExpected ? (
@@ -180,10 +180,10 @@ export default function QuestionFeedbackCard({ item, flags }) {
                                         {item.correct_option
                                             ? `${item.correct_option}${
                                                   item.correct_option_text
-                                                      ? ` — ${item.correct_option_text}`
+                                                      ? ` - ${item.correct_option_text}`
                                                       : ''
                                               }`
-                                            : '—'}
+                                            : '-'}
                                     </dd>
                                 </div>
                             ) : null}
@@ -195,14 +195,14 @@ export default function QuestionFeedbackCard({ item, flags }) {
                             <div>
                                 <dt className="text-xs text-theme-dim">Your answer</dt>
                                 <dd className="mt-0.5 whitespace-pre-wrap text-theme-strong">
-                                    {item.student_answer ?? '—'}
+                                    {item.student_answer ?? '-'}
                                 </dd>
                             </div>
                             {showExpected ? (
                                 <div>
                                     <dt className="text-xs text-theme-dim">Expected understanding</dt>
                                     <dd className="mt-0.5 text-theme-strong">
-                                        {item.accepted_fill_in ?? item.expected_answer ?? '—'}
+                                        {item.accepted_fill_in ?? item.expected_answer ?? '-'}
                                     </dd>
                                 </div>
                             ) : null}
@@ -215,7 +215,7 @@ export default function QuestionFeedbackCard({ item, flags }) {
                                 <div>
                                     <dt className="text-xs text-theme-dim">Your answer</dt>
                                     <dd className="mt-0.5 max-h-40 overflow-y-auto whitespace-pre-wrap text-theme-strong">
-                                        {item.student_answer ?? '—'}
+                                        {item.student_answer ?? '-'}
                                     </dd>
                                 </div>
                             ) : null}

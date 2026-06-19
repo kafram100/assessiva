@@ -55,7 +55,7 @@ export default function AcademicHealthScoreCard({
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                         <span className="text-3xl font-bold tabular-nums tracking-tight text-theme-strong">
-                            {score == null ? '—' : score}
+                            {score == null ? '-' : score}
                         </span>
                         <span className="text-[0.65rem] font-semibold uppercase tracking-widest text-cyan-700 dark:text-cyan-200/70">
                             index

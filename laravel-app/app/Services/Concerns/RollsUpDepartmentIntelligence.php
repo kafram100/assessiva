@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Aggregates existing AI intelligence rows (twins, predictions, analytics, revision, practice)
- * for a single department — no new AI calls.
+ * for a single department - no new AI calls.
  */
 trait RollsUpDepartmentIntelligence
 {
@@ -28,7 +28,7 @@ trait RollsUpDepartmentIntelligence
         $courseIds = Course::query()->where('department_id', $departmentId)->pluck('id');
         $lecturerIds = User::query()
             ->where('department_id', $departmentId)
-            ->whereIn('role', [UserRole::Lecturer, UserRole::Hod])
+            ->whereIn('role', [UserRole::Hod])
             ->pluck('id');
 
         if ($courseIds->isEmpty() && $lecturerIds->isEmpty()) {
@@ -481,7 +481,7 @@ trait RollsUpDepartmentIntelligence
         return [
             'high' => array_slice($high, 0, 25),
             'medium' => array_slice($medium, 0, 25),
-            'note' => 'Signals are aggregated from stored Prediction Engine and Analytics Intelligence outputs — supportive use only.',
+            'note' => 'Signals are aggregated from stored Prediction Engine and Analytics Intelligence outputs - supportive use only.',
         ];
     }
 

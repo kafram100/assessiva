@@ -67,13 +67,13 @@ class InstitutionalAnalyticsExport implements FromArray, WithTitle, ShouldAutoSi
         $rows[] = [];
 
         $ret = $inst['retention_risk'] ?? [];
-        $rows[] = ['Retention risk — high tier signal count', $ret['high_tier_signals'] ?? ''];
-        $rows[] = ['Retention risk — medium tier signal count', $ret['medium_tier_signals'] ?? ''];
+        $rows[] = ['Retention risk - high tier signal count', $ret['high_tier_signals'] ?? ''];
+        $rows[] = ['Retention risk - medium tier signal count', $ret['medium_tier_signals'] ?? ''];
         $rows[] = ['Retention risk note', $ret['note'] ?? ''];
         $rows[] = [];
 
         $pi = $inst['practice_institution'] ?? [];
-        $rows[] = ['Practice hub — total attempts', $pi['total_attempts'] ?? ''];
+        $rows[] = ['Practice hub - total attempts', $pi['total_attempts'] ?? ''];
         $rows[] = ['Practice weekly trend', 'Completions'];
         foreach ($pi['weekly_trend'] ?? [] as $pt) {
             if (! is_array($pt)) {

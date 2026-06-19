@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Portal · Novagrade.ai</title>
+    <title>Student Portal · NovaGrade</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -243,7 +243,7 @@
                     <p class="entry-ai-strip__lead mb-0">
                         Once your attempt is graded and your lecturer <strong>releases results</strong>, open the
                         interactive results view for a clear score breakdown. When enabled, you can launch an
-                        <strong>optional AI revision plan</strong>—concise weak-area notes, suggested practice focus,
+                        <strong>optional AI revision plan</strong>-concise weak-area notes, suggested practice focus,
                         and study prompts aligned to how you answered.
                     </p>
                     <div class="entry-ai-strip__meta">

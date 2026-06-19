@@ -16,17 +16,6 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    protected static function booted(): void
-    {
-        static::saving(function (User $user): void {
-            if ($user->role === UserRole::Hod && $user->department_id === null) {
-                throw ValidationException::withMessages([
-                    'department_id' => ['Heads of department must belong to a department.'],
-                ]);
-            }
-        });
-    }
-
     /**
      * @var list<string>
      */
@@ -44,6 +33,11 @@ class User extends Authenticatable
         'approved_at',
         'approved_by',
         'is_active',
+        'free_questions_remaining',
+        'tokens',
+        'level',
+        'profile_picture',
+        'permissions',
     ];
 
     /**
@@ -63,7 +57,19 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'approved_at' => 'datetime',
             'is_active' => 'boolean',
+            'permissions' => 'array',
         ];
+    }
+
+    protected $appends = ['profile_picture_url'];
+
+
+    public function getProfilePictureUrlAttribute(): ?string
+    {
+        if ($this->profile_picture) {
+            return asset('storage/' . $this->profile_picture);
+        }
+        return null;
     }
 
     public function exams()
@@ -74,6 +80,11 @@ class User extends Authenticatable
     public function courses()
     {
         return $this->hasMany(Course::class);
+    }
+
+    public function practiceSessions()
+    {
+        return $this->hasMany(UserPracticeSession::class);
     }
 
     public function department()
@@ -96,79 +107,58 @@ class User extends Authenticatable
         return $this->role === UserRole::Admin;
     }
 
-    public function isHod(): bool
+    public function isApprovedHod(): bool
     {
-        return $this->role === UserRole::Hod;
+        return $this->isHod();
     }
 
     public function isAdminOrHod(): bool
     {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        return $this->isHod()
-            && $this->is_active !== false
-            && $this->status === UserStatus::Approved;
+        return $this->isAdmin() || $this->isHod();
     }
 
-    public function isApprovedLecturer(): bool
+    public function hasPermission(string $permission): bool
     {
-        return $this->role === UserRole::Lecturer
-            && $this->status === UserStatus::Approved
-            && $this->is_active !== false;
-    }
-
-    public function isApprovedHod(): bool
-    {
-        return $this->isHod()
-            && $this->status === UserStatus::Approved
-            && $this->is_active !== false
-            && $this->department_id !== null;
-    }
-
-    /**
-     * When true, AI-generated bank questions from this user must be released by their HoD (not self-approved).
-     */
-    public function requiresHodAiQuestionReview(): bool
-    {
-        if (! $this->department_id) {
+        if (!$this->isAdmin()) {
             return false;
         }
 
-        $this->loadMissing('department');
+        // Admin ID 1 is the Super Admin and has all permissions
+        if ($this->id === 1) {
+            return true;
+        }
 
-        return (bool) ($this->department?->require_hod_approval_for_ai_questions ?? false);
+        return in_array($permission, $this->permissions ?? [], true);
+    }
+
+    public function isHod(): bool
+    {
+        return false;
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->role === UserRole::Student;
+    }
+
+    public function requiresHodAiQuestionReview(): bool
+    {
+        // The require_hod_approval_for_ai_questions column was dropped.
+        // Returning false by default to restore functionality without errors.
+        return false;
     }
 
     public function canManageExam(Exam $exam): bool
     {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        if (! $this->isApprovedLecturer() && ! $this->isApprovedHod()) {
-            return false;
-        }
-
-        return (int) $exam->user_id === (int) $this->id;
+        return $this->isAdmin();
     }
 
     /**
      * @param  Builder<User>  $query
      * @return Builder<User>
      */
-    public function scopeAcademicStaff(Builder $query): Builder
+    public function scopeStudents(Builder $query): Builder
     {
-        return $query->whereIn('role', [UserRole::Lecturer, UserRole::Hod]);
-    }
-
-    /**
-     * @param  Builder<User>  $query
-     * @return Builder<User>
-     */
-    public function scopeLecturers(Builder $query): Builder
-    {
-        return $query->where('role', UserRole::Lecturer);
+        return $query->where('role', UserRole::Student);
     }
 }

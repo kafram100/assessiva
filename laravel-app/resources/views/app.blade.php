@@ -22,10 +22,11 @@
             })();
         </script>
 
-        <meta name="description" content="Novagrade.ai for future universities. AI powered assessment, predictive analytics, personalized learning, and intelligent academic insights.">
-        <meta name="application-name" content="Novagrade.ai">
-
-        <title inertia>{{ config('app.name', 'Novagrade.ai') }}</title>
+        <meta name="description" content="NovaGrade: The ultimate AI-powered practice hub. Test your knowledge with randomized exams and get detailed feedback to master your subjects.">
+        <meta name="application-name" content="NovaGrade">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <title inertia>{{ config('app.name', 'NovaGrade') }}</title>
+        <link rel="icon" type="image/png" href="/favicon.png" />
 
         <!-- Fonts: premium landing + app UI -->
         <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>

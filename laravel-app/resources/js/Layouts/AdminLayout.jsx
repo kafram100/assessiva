@@ -279,6 +279,8 @@ function SidebarLink({ href, label, icon: Icon, active, collapsed, onNavigate })
 
 export default function AdminLayout({ header, children }) {
     const user = usePage().props.auth.user;
+    const adminPermissions = usePage().props.auth.admin_permissions || [];
+    const hasPermission = (perm) => adminPermissions.includes('*') || adminPermissions.includes(perm);
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [viewportLg, setViewportLg] = useState(() => {
@@ -394,135 +396,58 @@ export default function AdminLayout({ header, children }) {
                         collapsed={effectiveCollapsed}
                         onNavigate={closeMobile}
                     />
-                    <SidebarLink
-                        href={route('admin.institutional-intelligence')}
-                        label="Institutional intelligence"
-                        icon={IconDiagram}
-                        active={navActive(
-                            'admin.institutional-intelligence',
-                        )}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.schools')}
-                        label="Schools"
-                        icon={IconBuilding}
-                        active={navActive('admin.schools*')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.departments')}
-                        label="Departments"
-                        icon={IconDiagram}
-                        active={navActive('admin.departments*')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.lecturers.pending')}
-                        label="Pending lecturers"
-                        icon={IconPersonGear}
-                        active={navActive('admin.lecturers.pending')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.lecturers')}
-                        label="Academic staff"
-                        icon={IconPersonGear}
-                        active={
-                            navActive('admin.lecturers*') &&
-                            !navActive('admin.lecturers.pending')
-                        }
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.hods.index')}
-                        label="HOD management"
-                        icon={IconPeople}
-                        active={navActive('admin.hods.*')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.exams')}
-                        label="All exams"
-                        icon={IconJournal}
-                        active={navActive('admin.exams*')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.quizzes')}
-                        label="All quizzes"
-                        icon={IconJournalCheck}
-                        active={navActive('admin.quizzes')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.frequent-cheaters')}
-                        label="Proctoring incidents"
-                        icon={IconShield}
-                        active={navActive('admin.frequent-cheaters')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.students')}
-                        label="All students"
-                        icon={IconPeople}
-                        active={navActive('admin.students')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.email-settings')}
-                        label="Email settings"
-                        icon={IconEnvelope}
-                        active={navActive('admin.email-settings*')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.official-question-reviews.index')}
-                        label="Official question reviews"
-                        icon={IconShield}
-                        active={navActive(
-                            'admin.official-question-reviews.index',
-                        )}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
-                    <SidebarLink
-                        href={route('admin.question-bank-catalog.index')}
-                        label="Question bank catalog"
-                        icon={IconJournal}
-                        active={navActive('admin.question-bank-catalog*')}
-                        collapsed={effectiveCollapsed}
-                        onNavigate={closeMobile}
-                    />
+                    {hasPermission('manage_students') && (
+                        <SidebarLink
+                            href={route('admin.students')}
+                            label="All users"
+                            icon={IconPeople}
+                            active={navActive('admin.students')}
+                            collapsed={effectiveCollapsed}
+                            onNavigate={closeMobile}
+                        />
+                    )}
+                    {hasPermission('manage_questions') && (
+                        <SidebarLink
+                            href={route('admin.question-bank-catalog.index')}
+                            label="Question bank catalog"
+                            icon={IconJournal}
+                            active={navActive('admin.question-bank-catalog*')}
+                            collapsed={effectiveCollapsed}
+                            onNavigate={closeMobile}
+                        />
+                    )}
+                    {hasPermission('manage_billing') && (
+                        <SidebarLink
+                            href={route('admin.billing-settings')}
+                            label="Billing settings"
+                            icon={IconClipboardList}
+                            active={navActive('admin.billing-settings*')}
+                            collapsed={effectiveCollapsed}
+                            onNavigate={closeMobile}
+                        />
+                    )}
+                    {hasPermission('manage_settings') && (
+                        <SidebarLink
+                            href={route('admin.email-settings')}
+                            label="Email settings"
+                            icon={IconEnvelope}
+                            active={navActive('admin.email-settings*')}
+                            collapsed={effectiveCollapsed}
+                            onNavigate={closeMobile}
+                        />
+                    )}
+                    {hasPermission('manage_admins') && (
+                        <SidebarLink
+                            href={route('admin.admins.index')}
+                            label="Administrators"
+                            icon={IconPersonGear}
+                            active={navActive('admin.admins*')}
+                            collapsed={effectiveCollapsed}
+                            onNavigate={closeMobile}
+                        />
+                    )}
 
                     <div className="mx-2 mt-4 border-t border-theme-line pt-4">
-                        <SidebarLink
-                            href={route('lecturer.exams.index')}
-                            label="Lecturer exams"
-                            icon={IconJournal}
-                            active={navActive('lecturer.exams*')}
-                            collapsed={effectiveCollapsed}
-                            onNavigate={closeMobile}
-                        />
-                        <SidebarLink
-                            href={route('lecturer.courses.index')}
-                            label="Courses & rosters"
-                            icon={IconClipboardList}
-                            active={navActive('lecturer.courses*')}
-                            collapsed={effectiveCollapsed}
-                            onNavigate={closeMobile}
-                        />
                         <SidebarLink
                             href={route('profile.edit')}
                             label="Profile"

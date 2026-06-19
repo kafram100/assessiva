@@ -5,14 +5,14 @@ import { useEffect, useState } from 'react';
 
 function fmt(dt) {
     if (!dt) {
-        return '—';
+        return '-';
     }
     return new Date(dt).toLocaleString();
 }
 
 function scoreCell(score, total) {
     if (score === null || score === undefined || total === null || total === undefined) {
-        return '—';
+        return '-';
     }
     return `${score}/${total}`;
 }
@@ -137,7 +137,7 @@ export default function Quizzes({ attempts, filters = {} }) {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="font-medium text-theme-strong">
-                                                    {a.student_fullname ?? '—'}
+                                                    {a.student_fullname ?? '-'}
                                                 </div>
                                                 {a.student_email ? (
                                                     <div className="mt-0.5 max-w-[200px] truncate text-xs text-theme-dim">
@@ -157,10 +157,10 @@ export default function Quizzes({ attempts, filters = {} }) {
                                                         )}
                                                         className="text-sky-400 hover:text-sky-300 hover:underline"
                                                     >
-                                                        {ex.title ?? '—'}
+                                                        {ex.title ?? '-'}
                                                     </Link>
                                                 ) : (
-                                                    (ex?.title ?? '—')
+                                                    (ex?.title ?? '-')
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-xs">
@@ -180,11 +180,11 @@ export default function Quizzes({ attempts, filters = {} }) {
                                                         {ex.course_name ?? ''}
                                                     </span>
                                                 ) : (
-                                                    '—'
+                                                    '-'
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-xs">
-                                                {lec?.username ?? '—'}
+                                                {lec?.username ?? '-'}
                                             </td>
                                             <td className="px-4 py-3 text-xs">
                                                 {lec?.department ? (
@@ -195,7 +195,7 @@ export default function Quizzes({ attempts, filters = {} }) {
                                                             : ''}
                                                     </>
                                                 ) : (
-                                                    '—'
+                                                    '-'
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-end text-xs tabular-nums">

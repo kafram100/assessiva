@@ -19,29 +19,29 @@ export default {
             },
             colors: {
                 ai: {
-                    blue: '#00A3FF',
-                    blueDark: '#0090FF',
-                    cyan: '#5EEBFF',
+                    blue: 'var(--ai-primary)',
+                    blueDark: 'var(--ai-primary)',
+                    cyan: 'var(--ai-accent-line)',
                     navy: {
-                        950: '#050816',
-                        900: '#071120',
-                        800: '#0A1628',
+                        950: 'var(--bg-main)',
+                        900: 'var(--bg-canvas)',
+                        800: 'var(--bg-surface-soft)',
                     },
-                    accent: '#00A3FF',
-                    'accent-deep': '#0090FF',
-                    glow: '#5EEBFF',
-                    'glow-soft': '#4FD1FF',
-                    muted: '#B6C2D9',
-                    soft: '#7E8AA3',
+                    accent: 'var(--ai-primary)',
+                    'accent-deep': 'var(--ai-primary)',
+                    glow: 'var(--ai-accent-line)',
+                    'glow-soft': 'var(--ai-accent-line)',
+                    muted: 'var(--text-muted)',
+                    soft: 'var(--text-dim)',
                 },
                 light: {
-                    bg: '#F6FAFF',
-                    canvas: '#EEF6FF',
-                    surface: '#FFFFFF',
-                    'surface-soft': '#F8FBFF',
-                    border: '#D8E6F3',
-                    text: '#0B1220',
-                    muted: '#64748B',
+                    bg: 'var(--bg-main)',
+                    canvas: 'var(--bg-canvas)',
+                    surface: 'var(--bg-surface)',
+                    'surface-soft': 'var(--bg-surface-soft)',
+                    border: 'var(--border-main)',
+                    text: 'var(--text-strong)',
+                    muted: 'var(--text-muted)',
                 },
                 /** Semantic tokens — map to CSS variables (light + `html.dark`). */
                 theme: {
@@ -73,22 +73,14 @@ export default {
                 display: ['"Space Grotesk"', 'Inter', ...defaultTheme.fontFamily.sans],
             },
             backgroundImage: {
-                'ai-radial':
-                    'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 163, 255, 0.12), transparent)',
-                'ai-radial-soft':
-                    'radial-gradient(ellipse 100% 70% at 50% 0%, rgba(0, 163, 255, 0.06), transparent)',
-                'ai-radial-light':
-                    'radial-gradient(ellipse 90% 55% at 50% -15%, rgba(0, 144, 255, 0.14), transparent)',
-                'ai-radial-soft-light':
-                    'radial-gradient(ellipse 100% 70% at 50% 0%, rgba(56, 189, 248, 0.12), transparent)',
-                'ai-glow-conic':
-                    'conic-gradient(from 180deg at 50% 50%, rgba(94, 235, 255, 0.06) 0deg, transparent 120deg, rgba(0, 163, 255, 0.05) 240deg, transparent 360deg)',
-                'ai-glow-conic-light':
-                    'conic-gradient(from 200deg at 50% 40%, rgba(56, 189, 248, 0.12) 0deg, transparent 130deg, rgba(0, 123, 255, 0.06) 260deg, transparent 360deg)',
-                'ai-btn':
-                    'linear-gradient(135deg, #00A3FF 0%, #0090FF 55%, #0080E6 100%)',
-                'ai-btn-light':
-                    'linear-gradient(135deg, #007BFF 0%, #0090FF 50%, #00A3FF 100%)',
+                'ai-radial': 'var(--mesh-radial-image)',
+                'ai-radial-soft': 'var(--mesh-radial-image)',
+                'ai-radial-light': 'var(--mesh-radial-image)',
+                'ai-radial-soft-light': 'var(--mesh-radial-image)',
+                'ai-glow-conic': 'var(--mesh-conic-image)',
+                'ai-glow-conic-light': 'var(--mesh-conic-image)',
+                'ai-btn': 'var(--btn-primary-bg)',
+                'ai-btn-light': 'var(--btn-primary-bg)',
             },
             ringOffsetColor: {
                 ai: '#050816',
@@ -114,18 +106,12 @@ export default {
                 },
             },
             boxShadow: {
-                'ai-glow':
-                    '0 0 48px -10px rgba(0, 163, 255, 0.35), 0 0 96px -24px rgba(94, 235, 255, 0.12)',
-                'ai-glow-light':
-                    '0 0 40px -12px rgba(0, 144, 255, 0.25), 0 0 80px -20px rgba(56, 189, 248, 0.15)',
-                'ai-card':
-                    '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -28px rgba(0, 0, 0, 0.65)',
-                'ai-card-hover':
-                    '0 0 0 1px rgba(255,255,255,0.1), 0 24px 70px -24px rgba(0, 163, 255, 0.12)',
-                'ai-card-light':
-                    '0 1px 0 rgba(15,23,42,0.06), 0 20px 40px rgba(15, 23, 42, 0.08)',
-                'ai-card-light-hover':
-                    '0 1px 0 rgba(15,23,42,0.08), 0 24px 48px rgba(15, 23, 42, 0.12)',
+                'ai-glow': 'var(--shadow-glow)',
+                'ai-glow-light': 'var(--shadow-glow)',
+                'ai-card': 'var(--shadow-card)',
+                'ai-card-hover': 'var(--shadow-card-hover)',
+                'ai-card-light': 'var(--shadow-card)',
+                'ai-card-light-hover': 'var(--shadow-card-hover)',
                 'theme-card': 'var(--shadow-card)',
                 'theme-card-hover': 'var(--shadow-card-hover)',
             },

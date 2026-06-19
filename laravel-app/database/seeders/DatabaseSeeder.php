@@ -57,7 +57,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'lecturer',
                 'name' => 'Demo Lecturer',
                 'password' => Hash::make(self::TEST_PASSWORD),
-                'role' => UserRole::Lecturer,
+                'role' => UserRole::Hod,
                 'status' => UserStatus::Approved,
                 'department_id' => $department->id,
                 'school_id' => $school->id,
@@ -68,21 +68,5 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        User::query()->updateOrCreate(
-            ['email' => 'hod@example.com'],
-            [
-                'username' => 'hod',
-                'name' => 'Demo HOD',
-                'password' => Hash::make(self::TEST_PASSWORD),
-                'role' => UserRole::Hod,
-                'status' => UserStatus::Approved,
-                'department_id' => $department->id,
-                'school_id' => $school->id,
-                'staff_id' => 'HOD-DEMO-001',
-                'phone' => '+10000000002',
-                'is_active' => true,
-                'approved_at' => now(),
-            ],
-        );
     }
 }

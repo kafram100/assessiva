@@ -62,7 +62,7 @@ export default function Index({ schools }) {
                                             {s.name}
                                         </td>
                                         <td className="px-4 py-3 font-mono text-xs">
-                                            {s.code ?? '—'}
+                                            {s.code ?? '-'}
                                         </td>
                                         <td className="px-4 py-3">
                                             {s.departments_count}

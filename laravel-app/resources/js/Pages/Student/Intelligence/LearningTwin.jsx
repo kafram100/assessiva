@@ -23,7 +23,7 @@ export default function LearningTwin({ attempt, exam, twin }) {
                         <AcademicHealthCard
                             title="Academic health"
                             score={twin.academic_health_score}
-                            subtitle={`Risk: ${twin.risk_level || '—'}`}
+                            subtitle={`Risk: ${twin.risk_level || '-'}`}
                         />
                         <RiskMeter value={twin.academic_health_score} label="Health" />
                         <p className="text-sm text-theme-muted">{twin.learning_pattern}</p>

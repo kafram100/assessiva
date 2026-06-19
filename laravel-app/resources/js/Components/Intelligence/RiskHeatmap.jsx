@@ -18,7 +18,7 @@ export default function RiskHeatmap({ rows = [], title, valueLabel = 'Health' })
                 {title ?? 'Institutional risk heatmap'}
             </h3>
             <p className="mt-1 text-xs text-theme-dim">
-                Colour reflects blended academic health score where available — for
+                Colour reflects blended academic health score where available - for
                 supportive prioritisation, not punitive comparison.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -38,7 +38,7 @@ export default function RiskHeatmap({ rows = [], title, valueLabel = 'Health' })
                                 {valueLabel}
                             </span>
                             <span className="text-2xl font-bold tabular-nums text-theme-strong">
-                                {r.score == null ? '—' : r.score}
+                                {r.score == null ? '-' : r.score}
                             </span>
                         </div>
                         {r.label ? (

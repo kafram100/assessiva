@@ -72,7 +72,7 @@ class PracticeQuizController extends Controller
             'difficulties' => $this->distinctExamField('difficulty_level'),
             'lecturers' => User::query()
                 ->where('status', UserStatus::Approved)
-                ->whereIn('role', [UserRole::Lecturer, UserRole::Hod])
+                ->where('role', UserRole::Hod)
                 ->orderBy('name')
                 ->get(['id', 'name']),
         ]);
@@ -100,40 +100,47 @@ class PracticeQuizController extends Controller
     public function start(Request $request, Exam $quiz): RedirectResponse
     {
         $this->assertPracticeQuiz($quiz);
-        if (! $this->viewerMaySeeQuiz($request, $quiz)) {
-            abort(403, 'This practice quiz is restricted. Apply the correct department or program filter on the Practice Hub first.');
-        }
 
-        $rules = [
-            'student_name' => 'nullable|string|max:150',
-            'student_email' => 'nullable|email|max:150',
-            'student_index' => 'nullable|string|max:64',
-            'department' => 'nullable|string|max:120',
-        ];
-        if (! $quiz->allow_retry) {
-            $rules['student_email'] = 'required|email|max:150';
-        }
-        $data = $request->validate($rules);
+        $user = auth()->user();
 
         if (! $quiz->allow_retry) {
             $exists = PracticeQuizAttempt::query()
                 ->where('quiz_id', $quiz->id)
                 ->whereNotNull('submitted_at')
-                ->where('student_email', $data['student_email'])
+                ->where('student_email', $user->email)
                 ->exists();
             if ($exists) {
                 return back()->withErrors([
-                    'student_email' => 'This quiz allows only one completed attempt per email address.',
+                    'quiz' => 'This quiz allows only one completed attempt.',
                 ])->withInput();
             }
         }
 
+        $questionCount = $quiz->questions()->count();
+        $tokenPrice = (int) \App\Models\AppSetting::getValue('token_price_per_question', '1');
+        $cost = $questionCount * $tokenPrice;
+
+        if (($user->free_questions_remaining + $user->tokens) < $cost) {
+            return back()->withErrors([
+                'quiz' => "You need {$cost} tokens to start this quiz. Please Top Up.",
+            ])->withInput();
+        }
+
+        // Deduct tokens
+        $remainingCost = $cost;
+        if ($user->free_questions_remaining >= $remainingCost) {
+            $user->decrement('free_questions_remaining', $remainingCost);
+        } else {
+            $remainingCost -= $user->free_questions_remaining;
+            $user->free_questions_remaining = 0;
+            $user->decrement('tokens', $remainingCost);
+            $user->save();
+        }
+
         $attempt = PracticeQuizAttempt::query()->create([
             'quiz_id' => $quiz->id,
-            'student_name' => $data['student_name'] ?? null,
-            'student_email' => $data['student_email'] ?? null,
-            'student_index' => $data['student_index'] ?? null,
-            'department' => $data['department'] ?? null,
+            'student_name' => $user->name,
+            'student_email' => $user->email,
             'started_at' => now(),
         ]);
 

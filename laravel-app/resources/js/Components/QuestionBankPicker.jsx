@@ -231,7 +231,7 @@ export default function QuestionBankPicker({
                             <option value="">All courses</option>
                             {courses.map((c) => (
                                 <option key={c.id} value={c.id}>
-                                    {(c.code || '—') + ' — ' + c.name}
+                                    {(c.code || '-') + ' - ' + c.name}
                                 </option>
                             ))}
                         </select>
@@ -415,13 +415,13 @@ export default function QuestionBankPicker({
                                                 {r.question_type}
                                             </td>
                                             <td className="px-3 py-2 align-top text-theme-main">
-                                                {r.topic || '—'}
+                                                {r.topic || '-'}
                                             </td>
                                             <td className="px-3 py-2 align-top text-theme-main">
-                                                {r.difficulty || '—'}
+                                                {r.difficulty || '-'}
                                             </td>
                                             <td className="px-3 py-2 align-top tabular-nums text-theme-main">
-                                                {r.suggested_marks ?? '—'}
+                                                {r.suggested_marks ?? '-'}
                                             </td>
                                             <td className="px-3 py-2 align-top text-xs text-theme-muted">
                                                 {r.source_label}

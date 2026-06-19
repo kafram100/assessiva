@@ -27,7 +27,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                             Institutional intelligence
                         </h1>
                         <p className="text-sm text-theme-dim">
-                            University-wide mirror of stored academic AI outputs —
+                            University-wide mirror of stored academic AI outputs -
                             no live model calls.
                         </p>
                     </div>
@@ -50,7 +50,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                 </div>
             }
         >
-            <Head title="Admin — Institutional intelligence" />
+            <Head title="Admin - Institutional intelligence" />
 
             <div className="mx-auto max-w-7xl space-y-8">
                 <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-r from-theme-glass via-theme-surface-soft to-indigo-100/50 p-6 text-sm text-theme-muted shadow-[0_0_60px_-24px_rgba(34,211,238,0.2)] backdrop-blur-xl dark:from-slate-950/90 dark:via-slate-900/80 dark:to-indigo-950/80 dark:shadow-[0_0_80px_-24px_rgba(34,211,238,0.4)]">
@@ -61,7 +61,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                             Intelligence, Revision, and Practice Hub
                         </span>{' '}
                         artefacts already persisted in the database. Use it for
-                        supportive planning — never for punitive comparisons
+                        supportive planning - never for punitive comparisons
                         between people.
                     </p>
                 </div>
@@ -72,7 +72,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                             title="University academic health"
                             score={uh.score}
                             label={uh.label}
-                            hint="Mean of department health indices where data exists — a compass, not a verdict."
+                            hint="Mean of department health indices where data exists - a compass, not a verdict."
                         />
                     </div>
                     <div className="xl:col-span-3">
@@ -108,14 +108,14 @@ export default function AdminInstitutionalIntelligenceDashboard({
                                         institution?.cross_department_performance
                                             ?.avg_pass_rate_percent != null
                                             ? `${institution.cross_department_performance.avg_pass_rate_percent}%`
-                                            : '—',
+                                            : '-',
                                 },
                                 {
                                     label: 'Fairness proxy (mean)',
                                     value:
                                         fairness.avg_proxy_score != null
                                             ? fairness.avg_proxy_score
-                                            : '—',
+                                            : '-',
                                 },
                             ]}
                         />
@@ -127,7 +127,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                 <div className="grid gap-6 lg:grid-cols-2">
                     <DepartmentComparisonChart
                         departments={institution?.weakest_departments}
-                        subtitle="Lowest health indices — prioritise support, not blame."
+                        subtitle="Lowest health indices - prioritise support, not blame."
                     />
                     <WeakTopicPanel
                         topics={institution?.university_weak_topics}
@@ -185,7 +185,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                                 <span className="text-theme-strong">
                                     {(fairness.departments_with_low_proxy ?? [])
                                         .length === 0
-                                        ? '—'
+                                        ? '-'
                                         : fairness.departments_with_low_proxy.join(
                                               ', ',
                                           )}
@@ -206,7 +206,7 @@ export default function AdminInstitutionalIntelligenceDashboard({
                         Per-department rollups (raw payload)
                     </h3>
                     <p className="mt-1 text-xs text-theme-dim">
-                        For drill-down, pair with lecturer tools or export flows —
+                        For drill-down, pair with lecturer tools or export flows -
                         this table lists each department&apos;s blended health score.
                     </p>
                     <div className="mt-4 overflow-x-auto">
@@ -230,10 +230,10 @@ export default function AdminInstitutionalIntelligenceDashboard({
                                             {d.department_name}
                                         </td>
                                         <td className="py-2.5 pr-3 text-theme-dim">
-                                            {d.school_name ?? '—'}
+                                            {d.school_name ?? '-'}
                                         </td>
                                         <td className="py-2.5 pr-3 font-mono text-xs">
-                                            {d.academic_health?.score ?? '—'}
+                                            {d.academic_health?.score ?? '-'}
                                         </td>
                                         <td className="py-2.5 pr-3 font-mono text-xs">
                                             {d.practice_hub?.total_attempts ?? 0}

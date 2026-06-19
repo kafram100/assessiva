@@ -163,7 +163,7 @@ class AdminInstitutionalIntelligenceService
             'fairness' => [
                 'avg_proxy_score' => $fairnessScores !== [] ? (int) round(array_sum($fairnessScores) / count($fairnessScores)) : null,
                 'departments_with_low_proxy' => array_slice($lowFairnessDepartments, 0, 10),
-                'note' => 'Institutional fairness-adjacent view is derived from stored cohort analytics per department — supportive review only.',
+                'note' => 'Institutional fairness-adjacent view is derived from stored cohort analytics per department - supportive review only.',
             ],
             'retention_risk' => [
                 'high_tier_signals' => $highSignals,

@@ -20,7 +20,7 @@ export default function AIRecommendationPanel({
                     ) : (
                         <p className="mt-1 text-xs text-theme-dim">
                             Synthesised from stored analytics, twins, and prediction
-                            outputs — educational use only.
+                            outputs - educational use only.
                         </p>
                     )}
                 </div>

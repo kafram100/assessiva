@@ -59,10 +59,10 @@ export default function Index({ departments }) {
                                             {d.name}
                                         </td>
                                         <td className="px-4 py-3 text-theme-dim">
-                                            {d.school?.name ?? '—'}
+                                            {d.school?.name ?? '-'}
                                         </td>
                                         <td className="px-4 py-3 font-mono text-xs">
-                                            {d.code ?? '—'}
+                                            {d.code ?? '-'}
                                         </td>
                                         <td className="px-4 py-3">
                                             {d.lecturers_count}

@@ -13,9 +13,7 @@ class Department extends Model
 
     protected function casts(): array
     {
-        return [
-            'require_hod_approval_for_ai_questions' => 'boolean',
-        ];
+        return [];
     }
 
     public function school(): BelongsTo
@@ -30,7 +28,7 @@ class Department extends Model
 
     public function lecturers(): HasMany
     {
-        return $this->hasMany(User::class)->whereIn('role', [UserRole::Lecturer, UserRole::Hod]);
+        return $this->hasMany(User::class)->whereIn('role', [UserRole::Hod]);
     }
 
     public function courses(): HasMany

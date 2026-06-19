@@ -98,7 +98,7 @@ export default function Show({
                         <div>
                             <dt className="text-theme-dim">Name</dt>
                             <dd className="text-theme-strong">
-                                {attempt.student_name || '—'}
+                                {attempt.student_name || '-'}
                             </dd>
                         </div>
                         {scoreVisible ? (
@@ -222,7 +222,7 @@ export default function Show({
 
                 {released && revisionSuggestionsEnabled && revisionPlanExists ? (
                     <p className="text-center text-xs text-theme-dim">
-                        Your plan is saved — refreshing will not regenerate it.
+                        Your plan is saved - refreshing will not regenerate it.
                     </p>
                 ) : null}
 

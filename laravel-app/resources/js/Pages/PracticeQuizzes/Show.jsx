@@ -1,13 +1,11 @@
 import PracticeHubLayout from '@/Layouts/PracticeHubLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
 export default function Show({ quiz, filterQuery }) {
-    const form = useForm({
-        student_name: '',
-        student_email: '',
-        student_index: '',
-        department: '',
-    });
+    const { auth } = usePage().props;
+    const user = auth.user;
+    
+    const form = useForm({});
 
     const fq = filterQuery || {};
     const backHref = route('practice-quizzes.index', {
@@ -52,14 +50,14 @@ export default function Show({ quiz, filterQuery }) {
                             {quiz.instructions}
                         </div>
                     ) : null}
-                    <dl className="mt-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                    <dl className="mt-6 grid grid-cols-1 sm:grid-cols- gap-3 text-sm sm:grid-cols-3">
                         <div className="rounded-lg bg-white/5 p-3">
                             <dt className="text-theme-dim">Questions</dt>
                             <dd className="font-semibold text-theme-strong">{qCount}</dd>
                         </div>
                         <div className="rounded-lg bg-white/5 p-3">
                             <dt className="text-theme-dim">Difficulty</dt>
-                            <dd className="font-semibold text-theme-strong">{quiz.difficulty_level || '—'}</dd>
+                            <dd className="font-semibold text-theme-strong">{quiz.difficulty_level || '-'}</dd>
                         </div>
                         <div className="rounded-lg bg-white/5 p-3">
                             <dt className="text-theme-dim">Est. time</dt>
@@ -68,71 +66,60 @@ export default function Show({ quiz, filterQuery }) {
                                     ? `${quiz.practice_duration_minutes} min`
                                     : quiz.duration != null
                                       ? `${quiz.duration} min`
-                                      : '—'}
+                                      : '-'}
                             </dd>
                         </div>
                     </dl>
                 </div>
                 <div className="rounded-2xl border border-sky-500/30 bg-sky-950/20 p-6">
                     <h2 className="text-lg font-semibold text-theme-strong">Start practice</h2>
-                    <p className="mt-2 text-xs text-theme-dim">
-                        Optional details help lecturers with analytics. No proctoring, no exam codes.
-                    </p>
+                    
+                    <div className="mt-4 p-4 rounded-xl bg-theme-layer-1 border border-theme-line">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-theme-dim">Your Free Questions:</span>
+                            <span className="font-semibold text-emerald-400">{user?.free_questions_remaining || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-sm text-theme-dim">Your Tokens:</span>
+                            <span className="font-semibold text-amber-400">{user?.tokens || 0}</span>
+                        </div>
+                        <div className="border-t border-theme-line pt-4 flex justify-between items-center">
+                            <span className="text-sm text-theme-dim">Cost (Tokens):</span>
+                            <span className="font-bold text-red-400">-{qCount}</span>
+                        </div>
+                    </div>
+
                     {!quiz.allow_retry ? (
-                        <p className="mt-2 text-xs text-amber-200/90">
-                            This quiz allows only one attempt per email address.
+                        <p className="mt-4 text-xs text-amber-200/90 text-center">
+                            This quiz allows only one attempt.
                         </p>
                     ) : null}
+                    
+                    {form.errors.quiz ? (
+                        <p className="mt-4 text-sm text-red-400 text-center font-medium">{form.errors.quiz}</p>
+                    ) : null}
+
                     <form
-                        className="mt-4 space-y-3"
+                        className="mt-6 space-y-3"
                         onSubmit={(e) => {
                             e.preventDefault();
                             start();
                         }}
                     >
-                        <div>
-                            <label className="text-xs text-theme-dim">Name (optional)</label>
-                            <input
-                                className="mt-1 w-full rounded-lg border border-theme-line bg-theme-elevated px-3 py-2 text-sm"
-                                value={form.data.student_name}
-                                onChange={(e) => form.setData('student_name', e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-theme-dim">Email (optional)</label>
-                            <input
-                                type="email"
-                                className="mt-1 w-full rounded-lg border border-theme-line bg-theme-elevated px-3 py-2 text-sm"
-                                value={form.data.student_email}
-                                onChange={(e) => form.setData('student_email', e.target.value)}
-                            />
-                            {form.errors.student_email ? (
-                                <p className="mt-1 text-xs text-red-400">{form.errors.student_email}</p>
-                            ) : null}
-                        </div>
-                        <div>
-                            <label className="text-xs text-theme-dim">Index # (optional)</label>
-                            <input
-                                className="mt-1 w-full rounded-lg border border-theme-line bg-theme-elevated px-3 py-2 text-sm"
-                                value={form.data.student_index}
-                                onChange={(e) => form.setData('student_index', e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-theme-dim">Department (optional)</label>
-                            <input
-                                className="mt-1 w-full rounded-lg border border-theme-line bg-theme-elevated px-3 py-2 text-sm"
-                                value={form.data.department}
-                                onChange={(e) => form.setData('department', e.target.value)}
-                            />
-                        </div>
                         <button
                             type="submit"
                             disabled={form.processing || qCount === 0}
-                            className="w-full rounded-xl bg-sky-600 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+                            className="w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white disabled:opacity-40 transition-colors hover:bg-sky-500"
                         >
                             {qCount === 0 ? 'No questions yet' : 'Begin practice session'}
                         </button>
+                        
+                        <Link 
+                            href="/student/wallet" 
+                            className="block text-center mt-3 text-sm text-sky-400 hover:text-sky-300"
+                        >
+                            Top Up Tokens
+                        </Link>
                     </form>
                 </div>
             </div>

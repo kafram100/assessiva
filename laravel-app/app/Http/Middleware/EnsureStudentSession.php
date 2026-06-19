@@ -71,7 +71,11 @@ class EnsureStudentSession
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            return redirect()->route('student.entry');
+            if (auth()->check() && auth()->user()->isStudent()) {
+                return redirect()->route('student.dashboard')->withErrors(['exam_code' => 'Session expired or not found. Please join the exam again.']);
+            }
+
+            return redirect()->route('login')->withErrors(['email' => 'Please log in to take an exam.']);
         }
 
         return $next($request);

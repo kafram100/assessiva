@@ -17,6 +17,7 @@ class QuestionBank extends Model
      */
     protected $fillable = [
         'course_id',
+        'level',
         'lecturer_id',
         'department_id',
         'topic_id',
@@ -29,26 +30,21 @@ class QuestionBank extends Model
         'marking_scheme',
         'suggested_marks',
         'generated_by_ai',
+        'is_active',
         'ai_confidence',
         'source_reference',
-        'status',
-        'visibility',
         'created_by',
-        'approved_by',
-        'official_approved_by',
-        'rejection_reason',
         'version',
         'parent_question_id',
         'ai_generation_request_id',
-        'submitted_for_admin_ai_review',
     ];
 
     protected function casts(): array
     {
         return [
             'generated_by_ai' => 'boolean',
+            'is_active' => 'boolean',
             'ai_confidence' => 'decimal:2',
-            'submitted_for_admin_ai_review' => 'boolean',
         ];
     }
 
@@ -81,14 +77,6 @@ class QuestionBank extends Model
     public function usageStats(): HasOne
     {
         return $this->hasOne(QuestionUsageStat::class, 'question_bank_id');
-    }
-
-    /**
-     * @return HasMany<OfficialQuestionReview, $this>
-     */
-    public function officialReviews(): HasMany
-    {
-        return $this->hasMany(OfficialQuestionReview::class, 'question_bank_id')->latest();
     }
 
     public function aiGenerationRequest(): BelongsTo
@@ -125,17 +113,15 @@ class QuestionBank extends Model
      */
     public function scopeVisibleToLecturer(Builder $query, User $user): Builder
     {
-        return $query->where(function (Builder $q) use ($user): void {
-            $q->where('lecturer_id', $user->id)
-                ->orWhere(function (Builder $official) use ($user): void {
-                    $official->where('status', 'official')
-                        ->where(function (Builder $dept) use ($user): void {
-                            $dept->whereNull('department_id');
-                            if ($user->department_id) {
-                                $dept->orWhere('department_id', $user->department_id);
-                            }
-                        });
-                });
-        });
+        return $query->where('is_active', true)
+            ->where(function (Builder $q) use ($user): void {
+                $q->where('lecturer_id', $user->id)
+                  ->orWhere(function (Builder $official) use ($user): void {
+                      $official->whereNull('department_id');
+                      if ($user->department_id) {
+                          $official->orWhere('department_id', $user->department_id);
+                      }
+                  });
+            });
     }
 }

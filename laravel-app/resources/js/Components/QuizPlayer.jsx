@@ -1,0 +1,161 @@
+import React, { useState } from 'react';
+
+export default function QuizPlayer({ practiceSession, questions, onSubmit, processing }) {
+    const [data, setData] = useState({ responses: {} });
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    const question = questions[currentIndex];
+
+    const handleResponse = (val) => {
+        setData(prev => ({
+            ...prev,
+            responses: { ...prev.responses, [question.id]: val }
+        }));
+    };
+
+    const submitPractice = () => {
+        if (!confirm('Submit your practice session?')) return;
+        onSubmit(data.responses);
+    };
+
+    return (
+        <div 
+            className="mx-auto w-full select-none"
+            onCopy={(e) => e.preventDefault()}
+            onCut={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onKeyDown={(e) => {
+                if (e.ctrlKey && ['c', 'v', 'p', 's', 'x'].includes(e.key.toLowerCase())) {
+                    e.preventDefault();
+                }
+            }}
+        >
+            <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-xl font-bold text-theme-strong">Practice Session {practiceSession?.id}</h1>
+                <div className="text-sm font-medium text-theme-dim">
+                    Question {currentIndex + 1} of {questions.length}
+                </div>
+            </div>
+
+            {question && (
+                <div className="rounded-2xl border border-theme-line bg-theme-elevated p-6 shadow-sm">
+                    <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-sky-500">
+                        {question.q_type.replace('_', ' ')}
+                    </div>
+                    <div
+                        className="prose prose-sm prose-invert mb-8 max-w-none text-theme-strong"
+                        dangerouslySetInnerHTML={{ __html: question.question_text }}
+                    />
+
+                    {question.q_type === 'mcq' && (
+                        <div className="space-y-3">
+                            {['a', 'b', 'c', 'd', 'e'].map((opt) => {
+                                const text = question[`option_${opt}`];
+                                if (!text) return null;
+                                const isSelected = data.responses[question.id] === opt.toUpperCase();
+                                
+                                return (
+                                    <button
+                                        key={opt}
+                                        onClick={() => handleResponse(opt.toUpperCase())}
+                                        className={`w-full rounded-xl border p-4 text-left transition ${
+                                            isSelected
+                                                ? 'border-sky-500 bg-sky-500/10 text-sky-100'
+                                                : 'border-theme-line bg-theme-surface hover:border-theme-dim'
+                                        }`}
+                                    >
+                                        <div className="flex gap-4">
+                                            <div className="font-bold uppercase text-theme-dim">{opt}</div>
+                                            <div className="text-theme-strong">{text}</div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {(question.q_type === 'theory' || question.q_type === 'short_answer') && (
+                        <div>
+                            <textarea
+                                className="h-32 w-full rounded-xl border border-theme-line bg-theme-surface p-4 text-theme-strong focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                                placeholder="Type your answer here..."
+                                value={data.responses[question.id] || ''}
+                                onChange={(e) => handleResponse(e.target.value)}
+                            />
+                        </div>
+                    )}
+
+                    {question.q_type === 'fill_in' && (
+                        <div>
+                            <input
+                                type="text"
+                                className="w-full rounded-xl border border-theme-line bg-theme-surface p-4 text-theme-strong focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                                placeholder="Type your brief answer..."
+                                value={data.responses[question.id] || ''}
+                                onChange={(e) => handleResponse(e.target.value)}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="mt-8 flex justify-between">
+                <button
+                    onClick={() => setCurrentIndex((c) => Math.max(0, c - 1))}
+                    disabled={currentIndex === 0}
+                    className="rounded-xl border border-theme-line px-6 py-2 font-medium text-theme-muted hover:bg-white/[0.04] disabled:opacity-50"
+                >
+                    Previous
+                </button>
+                
+                {currentIndex === questions.length - 1 ? (
+                    <button
+                        onClick={submitPractice}
+                        disabled={processing}
+                        className="rounded-xl bg-sky-600 px-4 sm:px-8 py-2 font-bold text-white hover:bg-sky-500 disabled:opacity-50 flex items-center justify-center min-w-[150px]"
+                    >
+                        {processing ? (
+                            <div className="flex items-center gap-2">
+                                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Submitting...</span>
+                            </div>
+                        ) : 'Submit Practice'}
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => setCurrentIndex((c) => Math.min(questions.length - 1, c + 1))}
+                        className="rounded-xl bg-theme-surface px-6 py-2 font-medium text-theme-strong hover:bg-theme-line"
+                    >
+                        Next
+                    </button>
+                )}
+            </div>
+            
+            {/* Progress Indicators */}
+            <div className="mt-12 flex flex-wrap gap-2">
+                {questions.map((q, i) => {
+                    const hasAnswered = !!data.responses[q.id];
+                    const isCurrent = i === currentIndex;
+                    return (
+                        <button
+                            key={q.id}
+                            onClick={() => setCurrentIndex(i)}
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition ${
+                                isCurrent
+                                    ? 'border-2 border-sky-500 bg-theme-elevated text-sky-400'
+                                    : hasAnswered
+                                    ? 'bg-sky-600/20 text-sky-300'
+                                    : 'bg-theme-surface text-theme-dim hover:bg-theme-line'
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}

@@ -15,7 +15,7 @@ export default function AcademicHealthCard({ title, score, subtitle, accent = 's
                 {title}
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight text-theme-strong">
-                {score ?? '—'}
+                {score ?? '-'}
             </p>
             {subtitle ? (
                 <p className="mt-2 text-sm text-theme-muted">{subtitle}</p>

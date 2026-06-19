@@ -47,7 +47,7 @@ class PracticeFeedbackService
             'recommended_topics' => array_values($weak),
             'revision_tips' => [
                 'Break study sessions into short focused blocks.',
-                'Explain each concept out loud or teach a friend — it reveals gaps quickly.',
+                'Explain each concept out loud or teach a friend - it reveals gaps quickly.',
             ],
             'recommended_quizzes' => [],
             'motivation_message' => 'Every practice session builds confidence. Keep going.',

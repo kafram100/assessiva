@@ -70,9 +70,9 @@ export default function Pending({ lecturers = [] }) {
                                         </td>
                                         <td className="px-4 py-3">{lec.email}</td>
                                         <td className="px-4 py-3 font-mono text-xs">
-                                            {lec.staff_id ?? '—'}
+                                            {lec.staff_id ?? '-'}
                                         </td>
-                                        <td className="px-4 py-3">{lec.phone ?? '—'}</td>
+                                        <td className="px-4 py-3">{lec.phone ?? '-'}</td>
                                         <td className="px-4 py-3 text-xs">
                                             {lec.department ? (
                                                 <>
@@ -82,7 +82,7 @@ export default function Pending({ lecturers = [] }) {
                                                         : ''}
                                                 </>
                                             ) : (
-                                                '—'
+                                                '-'
                                             )}
                                         </td>
                                         <td className="px-4 py-3">

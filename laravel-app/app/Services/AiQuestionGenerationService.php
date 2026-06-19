@@ -38,6 +38,35 @@ class AiQuestionGenerationService
 
     /**
      * @param  array<int, string>  $questionTypes
+     * @return array<int, array<string, mixed>>
+     */
+    public function generateFromTopic(
+        string $topic,
+        int $count,
+        array $questionTypes,
+        string $difficulty,
+        int $totalMarks,
+        ?string $level = null
+    ): array {
+        $levelPrompt = $level ? "This is for a student at the {$level} Level (where 100 is freshman, 400 is senior). Adjust the depth and complexity accordingly. " : "";
+        $dummyContent = "This is a general knowledge assessment on the topic: {$topic}. {$levelPrompt}Please generate accurate questions testing core concepts of {$topic}. Use your general knowledge base to supply the facts. Do not complain about missing lecture notes.";
+        
+        $result = $this->generateQuestionsWithMetadata(
+            $dummyContent,
+            $count,
+            $questionTypes,
+            $difficulty,
+            $totalMarks,
+            $topic,
+            'General Knowledge',
+            'Understand the core concepts of ' . $topic
+        );
+
+        return $result['questions'];
+    }
+
+    /**
+     * @param  array<int, string>  $questionTypes
      * @return array{questions: array<int, array<string, mixed>>, provider: string, model: string, used_fallback: bool, error: ?string}
      */
     public function generateQuestionsWithMetadata(
@@ -642,9 +671,9 @@ JSON;
             $questionType = 'mcq';
         }
 
-        $diff = (string) ($item['difficulty'] ?? $difficulty);
+        $diff = strtolower((string) ($item['difficulty'] ?? $difficulty));
         if (! in_array($diff, ['easy', 'medium', 'hard'], true)) {
-            $diff = $difficulty;
+            $diff = 'medium';
         }
 
         $options = [];

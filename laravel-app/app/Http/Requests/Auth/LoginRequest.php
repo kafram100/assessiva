@@ -26,7 +26,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -38,11 +38,14 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $login = $this->input('login');
+        $loginType = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : (preg_match('/^[0-9\-\+\s\(\)]+$/', $login) ? 'phone' : 'username');
+
+        if (! Auth::attempt([$loginType => $this->input('login'), 'password' => $this->input('password')], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'login' => trans('auth.failed'),
             ]);
         }
 
@@ -52,28 +55,28 @@ class LoginRequest extends FormRequest
                 Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
-                    'email' => 'Your account has been deactivated. Contact an administrator.',
+                    'login' => 'Your account has been deactivated. Contact an administrator.',
                 ]);
             }
             if ($user->status === UserStatus::Rejected) {
                 Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
-                    'email' => 'Your account has been rejected. Contact an administrator.',
+                    'login' => 'Your account has been rejected. Contact an administrator.',
                 ]);
             }
             if ($user->status === UserStatus::Suspended) {
                 Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
-                    'email' => 'Your account has been suspended. Contact an administrator.',
+                    'login' => 'Your account has been suspended. Contact an administrator.',
                 ]);
             }
             if ($user->status !== UserStatus::Approved) {
                 Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
-                    'email' => 'Your account is pending approval. You will be able to log in once an administrator approves it.',
+                    'login' => 'Your account is pending approval. You will be able to log in once an administrator approves it.',
                 ]);
             }
         }
@@ -95,7 +98,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'login' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -104,6 +107,6 @@ class LoginRequest extends FormRequest
 
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string('login')).'|'.$this->ip());
     }
 }

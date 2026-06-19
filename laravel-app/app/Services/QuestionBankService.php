@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\AiGenerationRequest;
 use App\Models\Exam;
-use App\Models\OfficialQuestionReview;
 use App\Models\Question;
 use App\Models\QuestionAuditLog;
 use App\Models\QuestionBank;
@@ -20,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class QuestionBankService
 {
-    public function createDraftQuestion(User $lecturer, array $payload, ?AiGenerationRequest $request = null): QuestionBank
+    public function createQuestion(User $lecturer, array $payload, ?AiGenerationRequest $request = null): QuestionBank
     {
         return DB::transaction(function () use ($lecturer, $payload, $request): QuestionBank {
             $question = QuestionBank::create([
@@ -39,11 +38,9 @@ class QuestionBankService
                 'generated_by_ai' => (bool) ($payload['generated_by_ai'] ?? false),
                 'ai_confidence' => $payload['ai_confidence'] ?? null,
                 'source_reference' => $payload['source_reference'] ?? null,
-                'status' => $payload['status'] ?? 'draft',
-                'visibility' => $payload['visibility'] ?? 'personal',
                 'created_by' => $lecturer->id,
                 'ai_generation_request_id' => $request?->id,
-                'submitted_for_admin_ai_review' => false,
+                'is_active' => true,
             ]);
 
             $this->syncOptions($question, $payload['options'] ?? []);
@@ -61,27 +58,6 @@ class QuestionBankService
         return DB::transaction(function () use ($question, $actor, $payload, $reason): QuestionBank {
             $original = $question->replicate();
 
-            if ($question->status === 'official') {
-                $copy = $question->replicate();
-                $copy->parent_question_id = $question->id;
-                $copy->version = $question->version + 1;
-                $copy->status = 'draft';
-                $copy->visibility = 'personal';
-                $copy->lecturer_id = $actor->id;
-                $copy->created_by = $actor->id;
-                $copy->approved_by = null;
-                $copy->official_approved_by = null;
-                $copy->rejection_reason = null;
-                $copy->submitted_for_admin_ai_review = false;
-                $copy->save();
-
-                $this->syncOptions($copy, $payload['options'] ?? []);
-                $this->storeVersion($copy, $actor->id, 'forked_from_official', $reason);
-                $this->audit('official_question_duplicated', $copy, $actor, ['source_question_id' => $question->id]);
-
-                return $copy->fresh(['options']);
-            }
-
             $question->fill([
                 'question_text' => $payload['question_text'] ?? $question->question_text,
                 'question_type' => $payload['question_type'] ?? $question->question_type,
@@ -92,7 +68,7 @@ class QuestionBankService
                 'suggested_marks' => $payload['suggested_marks'] ?? $question->suggested_marks,
                 'topic' => $payload['topic'] ?? $question->topic,
                 'course_id' => $payload['course_id'] ?? $question->course_id,
-                'status' => $payload['status'] ?? $question->status,
+                'is_active' => $payload['is_active'] ?? $question->is_active,
             ]);
             $question->save();
 
@@ -107,176 +83,12 @@ class QuestionBankService
         });
     }
 
-    public function approveQuestion(QuestionBank $question, User $actor): QuestionBank
-    {
-        $question->loadMissing('lecturer');
-
-        if ($question->generated_by_ai && $this->aiBankReleaseRequiresHodApproval($question)) {
-            if (! $this->actorMayReleaseAiBankAiQuestion($question, $actor)) {
-                throw ValidationException::withMessages([
-                    'approve' => 'AI-generated questions must be released by your head of department. Submit them for HoD review from the AI batch page.',
-                ]);
-            }
-        }
-
-        $question->update([
-            'status' => 'approved',
-            'visibility' => 'personal',
-            'approved_by' => $actor->id,
-            'rejection_reason' => null,
-            'submitted_for_admin_ai_review' => false,
-        ]);
-
-        $this->audit('question_approved', $question, $actor);
-
-        return $question->fresh();
-    }
-
-    public function rejectQuestion(QuestionBank $question, User $actor, ?string $reason = null): QuestionBank
-    {
-        $question->update([
-            'status' => 'rejected',
-            'rejection_reason' => $reason,
-            'approved_by' => null,
-            'submitted_for_admin_ai_review' => false,
-        ]);
-
-        $this->audit('question_rejected', $question, $actor, ['reason' => $reason]);
-
-        return $question->fresh();
-    }
-
-    /**
-     * Lecturer queues AI drafts for head-of-department release into the bank.
-     *
-     * @param  iterable<int|string, QuestionBank|int>  $questions
-     */
-    public function submitAiQuestionsForHodReview(User $lecturer, iterable $questions): int
-    {
-        if (! $lecturer->requiresHodAiQuestionReview()) {
-            throw ValidationException::withMessages([
-                'submit' => 'Head-of-department approval for AI questions is not enabled for your department. You can approve drafts yourself from the review page.',
-            ]);
-        }
-
-        return (int) DB::transaction(function () use ($lecturer, $questions): int {
-            $count = 0;
-            foreach ($questions as $question) {
-                if (! $question instanceof QuestionBank) {
-                    $question = QuestionBank::query()->find($question);
-                }
-                if ($question === null) {
-                    continue;
-                }
-                if ((int) $question->lecturer_id !== (int) $lecturer->id) {
-                    abort(403);
-                }
-                if (! $question->generated_by_ai) {
-                    continue;
-                }
-                if (! in_array($question->status, ['draft', 'rejected'], true)) {
-                    continue;
-                }
-
-                $question->update([
-                    'submitted_for_admin_ai_review' => true,
-                    'status' => 'draft',
-                    'rejection_reason' => null,
-                ]);
-                $this->audit('ai_question_submitted_for_hod_review', $question, $lecturer);
-                $count++;
-            }
-
-            return $count;
-        });
-    }
-
-    public function rejectAiQuestionInHodQueue(QuestionBank $question, User $hod, ?string $reason = null): QuestionBank
-    {
-        if (! $hod->isApprovedHod()) {
-            abort(403);
-        }
-
-        $question->loadMissing('lecturer');
-        if ((int) ($question->lecturer?->department_id ?? 0) !== (int) $hod->department_id) {
-            abort(403, 'You can only review AI questions from lecturers in your department.');
-        }
-
-        if (! $question->generated_by_ai || ! $question->submitted_for_admin_ai_review || $question->status !== 'draft') {
-            throw ValidationException::withMessages([
-                'reject' => 'This question is not in the HoD AI review queue.',
-            ]);
-        }
-
-        $question->update([
-            'status' => 'rejected',
-            'rejection_reason' => $reason,
-            'approved_by' => null,
-            'submitted_for_admin_ai_review' => false,
-        ]);
-
-        $this->audit('ai_question_rejected_by_hod', $question, $hod, ['reason' => $reason]);
-
-        return $question->fresh();
-    }
-
     public function archiveQuestion(QuestionBank $question, User $actor): QuestionBank
     {
-        $question->update(['status' => 'archived']);
+        $question->update(['is_active' => false]);
         $this->audit('question_archived', $question, $actor);
 
         return $question->fresh();
-    }
-
-    public function submitForOfficialReview(QuestionBank $question, User $actor): OfficialQuestionReview
-    {
-        return DB::transaction(function () use ($question, $actor): OfficialQuestionReview {
-            $question->update([
-                'status' => 'pending_official_approval',
-                'visibility' => 'department',
-            ]);
-
-            $review = OfficialQuestionReview::create([
-                'question_bank_id' => $question->id,
-                'submitted_by' => $actor->id,
-                'status' => 'pending',
-            ]);
-
-            $this->audit('question_submitted_for_official_review', $question, $actor, ['review_id' => $review->id]);
-
-            return $review;
-        });
-    }
-
-    public function reviewOfficialQuestion(OfficialQuestionReview $review, User $reviewer, bool $approved, ?string $reason = null): OfficialQuestionReview
-    {
-        return DB::transaction(function () use ($review, $reviewer, $approved, $reason): OfficialQuestionReview {
-            $question = $review->question()->firstOrFail();
-
-            $review->update([
-                'reviewer_id' => $reviewer->id,
-                'status' => $approved ? 'approved' : 'rejected',
-                'review_note' => $approved ? 'Approved for official bank.' : null,
-                'rejection_reason' => $approved ? null : $reason,
-                'reviewed_at' => now(),
-            ]);
-
-            $question->update([
-                'status' => $approved ? 'official' : 'rejected',
-                'visibility' => $approved ? 'official' : 'personal',
-                'official_approved_by' => $approved ? $reviewer->id : null,
-                'rejection_reason' => $approved ? null : $reason,
-            ]);
-
-            $this->audit(
-                $approved ? 'official_question_approved' : 'official_question_rejected',
-                $question,
-                $reviewer,
-                ['review_id' => $review->id, 'reason' => $reason]
-            );
-
-            return $review->fresh(['question', 'reviewer']);
-        });
     }
 
     /**
@@ -296,8 +108,7 @@ class QuestionBankService
 
             $query = QuestionBank::query()
                 ->visibleToLecturer($lecturer)
-                ->whereIn('status', ['approved', 'official'])
-                ->whereNotIn('status', ['archived', 'draft', 'rejected', 'pending_official_approval']);
+                ->where('is_active', true);
 
             if (! empty($filters['course_id'])) {
                 $query->where('course_id', (int) $filters['course_id']);
@@ -403,8 +214,7 @@ class QuestionBankService
 
             $items = QuestionBank::query()
                 ->visibleToLecturer($lecturer)
-                ->whereIn('status', ['approved', 'official'])
-                ->whereNotIn('status', ['archived', 'draft', 'rejected', 'pending_official_approval'])
+                ->where('is_active', true)
                 ->whereIn('id', $ids)
                 ->with('options')
                 ->get()
@@ -605,25 +415,4 @@ class QuestionBankService
         };
     }
 
-    private function aiBankReleaseRequiresHodApproval(QuestionBank $question): bool
-    {
-        $question->loadMissing('lecturer.department');
-
-        return (bool) ($question->lecturer?->department?->require_hod_approval_for_ai_questions ?? false);
-    }
-
-    private function actorMayReleaseAiBankAiQuestion(QuestionBank $question, User $actor): bool
-    {
-        if (! $this->aiBankReleaseRequiresHodApproval($question)) {
-            return true;
-        }
-
-        if (! $actor->isApprovedHod()) {
-            return false;
-        }
-
-        $question->loadMissing('lecturer');
-
-        return (int) $actor->department_id === (int) ($question->lecturer?->department_id ?? 0);
-    }
 }

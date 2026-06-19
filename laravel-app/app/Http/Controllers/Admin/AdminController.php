@@ -28,23 +28,89 @@ class AdminController extends Controller
 {
     public function dashboard(): InertiaResponse
     {
-        $schoolCount = School::query()->count();
-        $departmentCount = Department::query()->count();
-        $lecturerCount = User::query()->academicStaff()->count();
-        $pendingCount = User::query()
-            ->where('role', UserRole::Lecturer)
-            ->where('status', UserStatus::Pending)
-            ->count();
-        $examCount = Exam::query()->count();
-        $attemptCount = Attempt::query()->where('status', 'completed')->count();
+        $studentCount = User::query()->where('role', UserRole::Student)->count();
+        $questionCount = \App\Models\QuestionBank::query()->count();
+        $attemptCount = Attempt::query()->count();
+        $totalTokens = User::query()->where('role', UserRole::Student)->sum('tokens');
+
+        $now = Carbon::now();
+
+        // 1. Daily History (Last 7 days)
+        $dailyHistory = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = $now->copy()->subDays($i);
+            $sum = \App\Models\Transaction::where('status', 'success')
+                ->whereDate('created_at', $date->toDateString())
+                ->sum('amount');
+            
+            $label = $i === 0 ? 'Today' : ($i === 1 ? 'Yesterday' : $date->format('M j'));
+            $dailyHistory[] = ['label' => $label, 'value' => $sum];
+        }
+
+        // 2. Weekly History (Last 4 weeks)
+        $weeklyHistory = [];
+        for ($i = 0; $i < 4; $i++) {
+            $startOfWeek = $now->copy()->subWeeks($i)->startOfWeek();
+            $endOfWeek = $now->copy()->subWeeks($i)->endOfWeek();
+            
+            $sum = \App\Models\Transaction::where('status', 'success')
+                ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+                ->sum('amount');
+
+            $label = $i === 0 ? 'This Week' : ($i === 1 ? 'Last Week' : $startOfWeek->format('M j') . ' - ' . $endOfWeek->format('M j'));
+            $weeklyHistory[] = ['label' => $label, 'value' => $sum];
+        }
+
+        // 3. Monthly History (Last 6 months)
+        $monthlyHistory = [];
+        for ($i = 0; $i < 6; $i++) {
+            $month = $now->copy()->subMonths($i);
+            
+            $sum = \App\Models\Transaction::where('status', 'success')
+                ->whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->sum('amount');
+
+            $label = $i === 0 ? 'This Month' : ($i === 1 ? 'Last Month' : $month->format('F Y'));
+            $monthlyHistory[] = ['label' => $label, 'value' => $sum];
+        }
+
+        // 4. Yearly History (Last 3 years)
+        $yearlyHistory = [];
+        for ($i = 0; $i < 3; $i++) {
+            $year = $now->copy()->subYears($i)->year;
+            
+            $sum = \App\Models\Transaction::where('status', 'success')
+                ->whereYear('created_at', $year)
+                ->sum('amount');
+
+            $label = (string)$year;
+            $yearlyHistory[] = ['label' => $label, 'value' => $sum];
+        }
 
         return Inertia::render('Admin/Dashboard', [
-            'schoolCount' => $schoolCount,
-            'departmentCount' => $departmentCount,
-            'lecturerCount' => $lecturerCount,
-            'pendingCount' => $pendingCount,
-            'examCount' => $examCount,
+            'studentCount' => $studentCount,
+            'questionCount' => $questionCount,
             'attemptCount' => $attemptCount,
+            'totalTokens' => $totalTokens,
+            'revenue' => [
+                'daily' => [
+                    'current' => $dailyHistory[0]['value'],
+                    'history' => $dailyHistory,
+                ],
+                'weekly' => [
+                    'current' => $weeklyHistory[0]['value'],
+                    'history' => $weeklyHistory,
+                ],
+                'monthly' => [
+                    'current' => $monthlyHistory[0]['value'],
+                    'history' => $monthlyHistory,
+                ],
+                'yearly' => [
+                    'current' => $yearlyHistory[0]['value'],
+                    'history' => $yearlyHistory,
+                ],
+            ],
         ]);
     }
 
@@ -194,7 +260,7 @@ class AdminController extends Controller
     public function pendingLecturers(): InertiaResponse
     {
         $pending = User::query()
-            ->where('role', UserRole::Lecturer)
+            ->where('role', UserRole::Hod)
             ->where('status', UserStatus::Pending)
             ->with(['department.school'])
             ->orderBy('created_at')
@@ -207,7 +273,7 @@ class AdminController extends Controller
 
     public function suspendLecturer(Request $request, User $user): RedirectResponse
     {
-        if ($user->role !== UserRole::Lecturer) {
+        if ($user->role !== UserRole::Hod) {
             abort(403);
         }
 
@@ -222,7 +288,7 @@ class AdminController extends Controller
 
     public function updateStaffDepartment(Request $request, User $user): RedirectResponse
     {
-        if (! in_array($user->role, [UserRole::Lecturer, UserRole::Hod], true)) {
+        if ($user->role !== UserRole::Hod) {
             abort(403);
         }
 
@@ -268,7 +334,7 @@ class AdminController extends Controller
 
     public function approveLecturer(Request $request, User $user): RedirectResponse
     {
-        if (! in_array($user->role, [UserRole::Lecturer, UserRole::Hod], true)) {
+        if ($user->role !== UserRole::Hod) {
             abort(403);
         }
 
@@ -294,7 +360,7 @@ class AdminController extends Controller
 
     public function rejectLecturer(Request $request, User $user): RedirectResponse
     {
-        if (! in_array($user->role, [UserRole::Lecturer, UserRole::Hod], true)) {
+        if ($user->role !== UserRole::Hod) {
             abort(403);
         }
 
@@ -322,7 +388,7 @@ class AdminController extends Controller
             'username' => 'required|string|max:50|unique:users,username',
             'email' => 'required|email|max:100|unique:users,email',
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-            'role' => 'required|in:'.UserRole::Lecturer->value.','.UserRole::Hod->value,
+            'role' => 'required|in:'.UserRole::Hod->value,
             'department_id' => 'nullable|exists:departments,id|required_if:role,'.UserRole::Hod->value,
         ]);
 
@@ -549,19 +615,18 @@ class AdminController extends Controller
     {
         $search = trim((string) $request->input('q', ''));
 
-        $students = Attempt::query()
-            ->where('status', 'completed')
+        $students = User::query()
+            ->students()
             ->when($search !== '', function ($q) use ($search): void {
                 $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $search).'%';
                 $q->where(function ($qq) use ($term): void {
-                    $qq->where('student_index', 'like', $term)
-                        ->orWhere('student_fullname', 'like', $term)
-                        ->orWhere('student_email', 'like', $term);
+                    $qq->where('username', 'like', $term)
+                        ->orWhere('name', 'like', $term)
+                        ->orWhere('email', 'like', $term);
                 });
             })
-            ->selectRaw('student_index, MAX(student_fullname) as student_fullname, MAX(student_email) as student_email, COUNT(*) as attempt_count, MAX(submit_time) as last_attempt')
-            ->groupBy('student_index')
-            ->orderByDesc('last_attempt')
+            ->withCount('practiceSessions')
+            ->orderByDesc('created_at')
             ->paginate(25)
             ->withQueryString();
 
@@ -571,21 +636,79 @@ class AdminController extends Controller
         ]);
     }
 
-    public function updateStudentEmail(Request $request, string $student_index): RedirectResponse
+    public function exportEmails(Request $request)
+    {
+        $query = User::students()->select('email', 'name');
+        
+        if ($request->has('ids') && !empty($request->query('ids'))) {
+            $ids = explode(',', $request->query('ids'));
+            $query->whereIn('id', $ids);
+        }
+        
+        $users = $query->get();
+        
+        $headers = [
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=user_emails.csv',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+        
+        $callback = function () use ($users) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Name', 'Email']);
+            foreach ($users as $user) {
+                fputcsv($file, [$user->name, $user->email]);
+            }
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPhones(Request $request)
+    {
+        $query = User::students()->select('phone')->whereNotNull('phone');
+        
+        if ($request->has('ids') && !empty($request->query('ids'))) {
+            $ids = explode(',', $request->query('ids'));
+            $query->whereIn('id', $ids);
+        }
+        
+        $users = $query->get();
+        
+        $headers = [
+            'Content-type' => 'text/plain',
+            'Content-Disposition' => 'attachment; filename=user_phones.txt',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+        
+        $callback = function () use ($users) {
+            $file = fopen('php://output', 'w');
+            foreach ($users as $user) {
+                if (trim($user->phone) !== '') {
+                    fwrite($file, $user->phone . PHP_EOL);
+                }
+            }
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function deleteStudents(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'student_email' => 'required|email|max:150',
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:users,id',
         ]);
 
-        $updated = Attempt::query()->where('student_index', $student_index)->update([
-            'student_email' => $data['student_email'],
-        ]);
+        User::students()->whereIn('id', $data['ids'])->delete();
 
-        if ($updated === 0) {
-            return redirect()->route('admin.students')->with('error', 'No student records found for that index.');
-        }
-
-        return redirect()->route('admin.students')->with('success', "Student email updated for index {$student_index}.");
+        return redirect()->back()->with('success', 'Selected users deleted successfully.');
     }
 
     public function frequentCheaters(Request $request): InertiaResponse
@@ -678,6 +801,40 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.email-settings')->with('success', 'Email settings saved. Lecturers now use this shared sender account.');
+    }
+
+    public function billingSettings(): InertiaResponse
+    {
+        $settings = [
+            'active_payment_gateway' => AppSetting::getValue('active_payment_gateway', 'paystack'),
+            'token_price_per_question' => AppSetting::getValue('token_price_per_question', '1'),
+            'paystack_public_key' => AppSetting::getValue('paystack_public_key', ''),
+            'paystack_secret_key' => AppSetting::getValue('paystack_secret_key', ''),
+            'moolre_public_key' => AppSetting::getValue('moolre_public_key', ''),
+            'moolre_secret_key' => AppSetting::getValue('moolre_secret_key', ''),
+        ];
+
+        return Inertia::render('Admin/BillingSettings', [
+            'settings' => $settings,
+        ]);
+    }
+
+    public function updateBillingSettings(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'active_payment_gateway' => 'required|in:paystack,moolre',
+            'token_price_per_question' => 'required|numeric|min:0',
+            'paystack_public_key' => 'nullable|string',
+            'paystack_secret_key' => 'nullable|string',
+            'moolre_public_key' => 'nullable|string',
+            'moolre_secret_key' => 'nullable|string',
+        ]);
+
+        foreach ($data as $key => $value) {
+            AppSetting::setValue($key, $value === '' ? null : (string) $value);
+        }
+
+        return redirect()->route('admin.billing-settings')->with('success', 'Billing settings updated.');
     }
 
     private function coursesAggregateSql(): string

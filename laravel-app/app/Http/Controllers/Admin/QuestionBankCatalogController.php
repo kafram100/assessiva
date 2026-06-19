@@ -63,8 +63,9 @@ class QuestionBankCatalogController extends Controller
             }
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', (string) $request->input('status'));
+        if ($request->filled('is_active')) {
+            $isActive = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
+            $query->where('is_active', $isActive);
         }
 
         if ($request->filled('question_type')) {
@@ -82,7 +83,7 @@ class QuestionBankCatalogController extends Controller
         return Inertia::render('Admin/QuestionBankCatalog/Index', [
             'questions' => $questions,
             'topicOptions' => $topicOptions,
-            'filters' => $request->only(['search', 'topic', 'status', 'question_type']),
+            'filters' => $request->only(['search', 'topic', 'is_active', 'question_type']),
             'scope' => $user->isAdmin() ? 'admin' : 'hod',
         ]);
     }
@@ -98,12 +99,284 @@ class QuestionBankCatalogController extends Controller
             $deptId = (int) $user->department_id;
             $query->where(function (Builder $q) use ($deptId): void {
                 $q->where('department_id', $deptId)
-                    ->orWhere(function (Builder $q2): void {
-                        $q2->whereNull('department_id')->where('status', 'official');
-                    });
+                    ->orWhereNull('department_id');
             });
         }
 
         return $query;
+    }
+
+    public function importForm(Request $request): Response
+    {
+        $courses = \App\Models\Course::query()
+            ->select('id', 'code', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Admin/QuestionBankCatalog/Import', [
+            'courses' => $courses,
+        ]);
+    }
+
+    public function importStore(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $request->validate([
+            'course_name' => 'required|string|max:255',
+            'level' => 'required|in:Year 1,Year 2,Year 3,Year 4',
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $file = $request->file('csv_file');
+        $fileContent = file_get_contents($file->getRealPath());
+        $delimiter = ',';
+        if (substr_count($fileContent, "\t") > substr_count($fileContent, ',')) {
+            $delimiter = "\t";
+        } elseif (substr_count($fileContent, ';') > substr_count($fileContent, ',')) {
+            $delimiter = ';';
+        }
+
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return back()->withErrors(['csv_file' => 'Could not read the uploaded file.'])->withInput();
+        }
+
+        fgetcsv($handle, 0, $delimiter);
+        $imported = 0;
+        $user = $request->user();
+
+        $courseName = trim((string) $request->input('course_name'));
+        $course = \App\Models\Course::firstOrCreate(
+            ['name' => $courseName],
+            [
+                'code' => strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $courseName), 0, 3)) . rand(100, 999),
+                'user_id' => $user->id,
+                'department_id' => $user->department_id,
+            ]
+        );
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            if (count($row) < 3) {
+                \Illuminate\Support\Facades\Log::warning('CSV Import Skipped: Row has less than 3 columns', ['row' => $row]);
+                continue;
+            }
+            [
+                $qType,
+                $questionText,
+                $optA,
+                $optB,
+                $optC,
+                $optD,
+                $optE,
+                $correctAns,
+                $marks,
+            ] = array_pad($row, 9, null);
+
+            $qType = strtolower(trim((string) ($qType ?? 'mcq')));
+            $qType = str_replace([' ', '-'], '_', $qType);
+            if (in_array($qType, ['multiple_choice', 'multiple_choices', 'objective'], true)) {
+                $qType = 'mcq';
+            }
+            if (! in_array($qType, \App\Enums\QuestionType::values(), true)) {
+                \Illuminate\Support\Facades\Log::warning('CSV Import Skipped: Invalid question type', ['qType' => $qType, 'row' => $row]);
+                continue;
+            }
+            if (trim((string) ($questionText ?? '')) === '') {
+                \Illuminate\Support\Facades\Log::warning('CSV Import Skipped: Empty question text', ['row' => $row]);
+                continue;
+            }
+
+            $normalizedCorrect = trim((string) ($correctAns ?? ''));
+            if ($qType === \App\Enums\QuestionType::Mcq->value) {
+                $normalizedCorrect = strtoupper(substr($normalizedCorrect, 0, 1));
+            }
+            $normalizedCorrect = $normalizedCorrect !== '' ? $normalizedCorrect : null;
+
+            $question = QuestionBank::create([
+                'course_id' => $course->id,
+                'level' => $request->input('level'),
+                'lecturer_id' => $user->id,
+                'department_id' => $user->department_id,
+                'question_text' => trim((string) $questionText),
+                'question_type' => $qType,
+                'is_active' => true,
+                'difficulty' => 'medium',
+                'created_by' => $user->id,
+                'correct_answer' => $normalizedCorrect,
+                'suggested_marks' => max(1, (int) ($marks ?? 1)),
+            ]);
+
+            if ($qType === \App\Enums\QuestionType::Mcq->value) {
+                $options = [
+                    'A' => $optA,
+                    'B' => $optB,
+                    'C' => $optC,
+                    'D' => $optD,
+                    'E' => $optE,
+                ];
+                foreach ($options as $key => $val) {
+                    $valTrimmed = trim((string) ($val ?? ''));
+                    if ($valTrimmed !== '') {
+                        \App\Models\QuestionOption::create([
+                            'question_bank_id' => $question->id,
+                            'option_key' => $key,
+                            'option_text' => $valTrimmed,
+                            'is_correct' => $key === $normalizedCorrect,
+                        ]);
+                    }
+                }
+            }
+
+            $imported++;
+        }
+
+        fclose($handle);
+
+        return redirect()->route('admin.question-bank-catalog.index')
+            ->with('success', "{$imported} question(s) imported to the Question Bank successfully.");
+    }
+
+    public function aiGenerateForm(Request $request): Response
+    {
+        $courses = \App\Models\Course::query()
+            ->select('id', 'code', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Admin/QuestionBankCatalog/AiGenerate', [
+            'courses' => $courses,
+        ]);
+    }
+
+    public function aiGenerateStore(Request $request, \App\Services\AiQuestionGenerationService $aiService): \Illuminate\Http\RedirectResponse
+    {
+        $request->validate([
+            'course_name' => 'required|string|max:150',
+            'level' => 'required|in:Year 1,Year 2,Year 3,Year 4',
+            'topic' => 'nullable|string|max:150',
+            'lecture_content' => 'nullable|string|max:500000',
+            'input_file' => 'nullable|file|mimes:txt,pdf,doc,docx,ppt,pptx|max:8192',
+            'question_count' => 'required|integer|min:1|max:100000',
+            'question_types' => 'required|array|min:1',
+            'question_types.*' => 'required|in:mcq,theory,fill_in,true_false',
+        ]);
+
+        $sourceContent = trim((string) ($request->input('lecture_content') ?? ''));
+        $sourceFilePath = null;
+        $inputType = 'text';
+
+        if ($request->hasFile('input_file')) {
+            $file = $request->file('input_file');
+            $sourceFilePath = $file->store('ai-lecture-sources');
+            $inputType = strtolower((string) $file->getClientOriginalExtension());
+
+            if (strtolower((string) $file->getClientOriginalExtension()) === 'txt') {
+                $sourceContent = trim((string) file_get_contents($file->getRealPath()));
+            }
+        }
+
+        if ($sourceContent === '') {
+            return back()
+                ->withErrors(['lecture_content' => 'Provide lecture text (or upload a text file) before generating questions.'])
+                ->withInput();
+        }
+
+        $sourceContent = $aiService->sanitizeLectureContent($sourceContent);
+        $user = $request->user();
+
+        $courseName = trim((string) $request->input('course_name'));
+        $course = \App\Models\Course::firstOrCreate(
+            ['name' => $courseName],
+            [
+                'code' => strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $courseName), 0, 3)) . rand(100, 999),
+                'user_id' => $user->id,
+                'department_id' => $user->department_id,
+            ]
+        );
+
+        $aiRequest = \App\Models\AiGenerationRequest::create([
+            'lecturer_id' => $user->id,
+            'source_text' => mb_substr($sourceContent, 0, 50000),
+            'input_type' => $inputType,
+            'source_file_path' => $sourceFilePath,
+            'source_content' => $sourceContent,
+            'requested_question_count' => (int) $request->input('number_of_questions'),
+            'question_types' => $request->input('question_types'),
+            'difficulty' => 'mixed',
+            'total_marks' => (int) $request->input('number_of_questions'),
+            'parameters' => array_merge($request->only(['topic', 'level']), ['course_id' => $course->id]),
+            'status' => 'pending',
+        ]);
+
+        try {
+            $generationResult = $aiService->generateQuestionsWithMetadata(
+                $sourceContent,
+                (int) $request->input('number_of_questions'),
+                (array) $request->input('question_types'),
+                'mixed',
+                (int) $request->input('number_of_questions'),
+                $request->input('topic') ?? null,
+                'General Knowledge',
+                null
+            );
+
+            if (!empty($generationResult['error'])) {
+                $aiRequest->update([
+                    'status' => 'failed',
+                    'error_message' => $generationResult['error'],
+                ]);
+                return back()->withErrors(['ai' => $generationResult['error']]);
+            }
+
+            $questions = $generationResult['questions'];
+
+            $aiRequest->update([
+                'status' => 'completed',
+                'result_payload' => $questions,
+                'completed_at' => now(),
+            ]);
+
+            foreach ($questions as $q) {
+                $questionBank = QuestionBank::create([
+                    'course_id' => $course->id,
+                    'level' => $request->input('level'),
+                    'topic' => $request->input('topic') ?: ($q['topic'] ?? null),
+                    'lecturer_id' => $user->id,
+                    'department_id' => $user->department_id,
+                    'question_text' => $q['question_text'],
+                    'question_type' => $q['question_type'] ?? 'mcq',
+                    'difficulty' => $q['difficulty'] ?? 'medium',
+                    'correct_answer' => $q['correct_answer'] ?? null,
+                    'model_answer' => $q['model_answer'] ?? null,
+                    'suggested_marks' => $q['suggested_marks'] ?? 1,
+                    'generated_by_ai' => true,
+                    'ai_confidence' => $q['ai_confidence'] ?? null,
+                    'is_active' => true,
+                    'created_by' => $user->id,
+                    'ai_generation_request_id' => $aiRequest->id,
+                ]);
+
+                if (($q['question_type'] ?? 'mcq') === 'mcq' && ! empty($q['options'])) {
+                    foreach ($q['options'] as $opt) {
+                        \App\Models\QuestionOption::create([
+                            'question_bank_id' => $questionBank->id,
+                            'option_key' => strtoupper(substr((string) $opt['key'], 0, 1)),
+                            'option_text' => $opt['text'],
+                            'is_correct' => (bool) ($opt['is_correct'] ?? false),
+                        ]);
+                    }
+                }
+            }
+
+            return redirect()->route('admin.question-bank-catalog.index')
+                ->with('success', count($questions).' question(s) generated and added to the official catalog.');
+
+        } catch (\Exception $e) {
+            $aiRequest->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['ai' => 'Failed to generate questions: '.$e->getMessage()]);
+        }
     }
 }

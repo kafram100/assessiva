@@ -20,7 +20,7 @@ class AnalyticsIntelligenceService
      */
     public function buildPayload(User $owner, Course $course): array
     {
-        $allLecturers = $owner->isAdmin() || $owner->isHod();
+        $allLecturers = $owner->isAdmin();
 
         $examIds = Exam::query()
             ->where('course_id', $course->id)

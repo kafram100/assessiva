@@ -103,7 +103,7 @@ export default function DashboardPreviewSection() {
                                     />
                                 </div>
                             </MiniCard>
-                            <div className="mt-4 grid grid-cols-2 gap-3">
+                            <div className="mt-4 grid grid-cols-1 sm:grid-cols- gap-3">
                                 <MiniCard title="At risk" accent="">
                                     <div className="font-display text-2xl font-bold text-amber-200/90">12%</div>
                                     <div className="text-[0.65rem] text-theme-dim">Early signal</div>

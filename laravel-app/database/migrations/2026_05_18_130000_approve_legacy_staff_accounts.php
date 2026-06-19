@@ -21,7 +21,7 @@ return new class extends Migration
         }
 
         DB::table('users')
-            ->whereIn('role', [UserRole::Lecturer->value, UserRole::Hod->value])
+            ->whereIn('role', [UserRole::Hod->value])
             ->where('status', UserStatus::Pending->value)
             ->whereNull('staff_id')
             ->update([

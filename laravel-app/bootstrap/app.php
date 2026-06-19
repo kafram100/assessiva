@@ -19,14 +19,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
-            'admin_or_hod' => \App\Http\Middleware\EnsureAdminOrHod::class,
+            'admin_permission' => \App\Http\Middleware\CheckAdminPermission::class,
             'approved_staff' => \App\Http\Middleware\EnsureApprovedUser::class,
-            'hod' => \App\Http\Middleware\EnsureHod::class,
-            'lecturer_area' => \App\Http\Middleware\EnsureLecturerArea::class,
             'role' => \App\Http\Middleware\EnsureRole::class,
             'student' => \App\Http\Middleware\EnsureStudentSession::class,
             'student_result_verified' => \App\Http\Middleware\EnsureStudentResultVerified::class,
         ]);
+
+        $middleware->redirectUsersTo('/');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -1,5 +1,4 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import HodLayout from '@/Layouts/HodLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useRef } from 'react';
 
@@ -131,21 +130,15 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                 </label>
                                 <select
                                     className="w-full rounded-lg border border-theme-line bg-ai-navy-900/80 px-3 py-2 text-sm text-theme-strong"
-                                    value={filters?.status ?? ''}
+                                    value={filters?.is_active ?? ''}
                                     onChange={(e) => {
                                         const v = e.target.value;
-                                        apply({ status: v || undefined });
+                                        apply({ is_active: v || undefined });
                                     }}
                                 >
-                                    <option value="">Any status</option>
-                                    <option value="draft">Draft</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="rejected">Rejected</option>
-                                    <option value="archived">Archived</option>
-                                    <option value="pending_official_approval">
-                                        Pending official
-                                    </option>
-                                    <option value="official">Official</option>
+                                    <option value="">Any</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Archived</option>
                                 </select>
                             </div>
                             <div>
@@ -231,7 +224,6 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                                     Status
                                                 </th>
                                                 <th className="ai-th">Course</th>
-                                                <th className="ai-th">Lecturer</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -255,23 +247,12 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                                         {q.difficulty}
                                                     </td>
                                                     <td className="ai-td whitespace-nowrap align-top text-xs uppercase text-ai-muted">
-                                                        {q.status}
+                                                        {q.is_active ? 'Active' : 'Archived'}
                                                     </td>
                                                     <td className="ai-td align-top text-xs text-ai-soft">
                                                         {q.course
-                                                            ? `${q.course.code} — ${q.course.name}`
-                                                            : '—'}
-                                                    </td>
-                                                    <td className="ai-td align-top text-xs text-ai-soft">
-                                                        <div>
-                                                            {q.lecturer
-                                                                ?.username ??
-                                                                '—'}
-                                                        </div>
-                                                        <div>
-                                                            {q.department
-                                                                ?.name ?? ''}
-                                                        </div>
+                                                            ? `${q.course.code} - ${q.course.name}`
+                                                            : '-'}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -290,8 +271,29 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
 }
 
 export default function Index(props) {
-    const user = usePage().props.auth.user;
     const { questions, topicOptions, filters, scope } = props;
+
+    const adminHeader = (
+        <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold leading-tight text-theme-strong">
+                Question bank catalog
+            </h2>
+            <div className="flex gap-2">
+                <Link
+                    href={route('admin.question-bank-catalog.import')}
+                    className="btn-ai-secondary"
+                >
+                    Import Questions
+                </Link>
+                <Link
+                    href={route('admin.question-bank-catalog.ai-generate')}
+                    className="btn-ai-primary"
+                >
+                    AI Generate
+                </Link>
+            </div>
+        </div>
+    );
 
     const body = (
         <CatalogBody
@@ -301,21 +303,6 @@ export default function Index(props) {
             scope={scope}
         />
     );
-
-    const hodHeader = (
-        <h2 className="text-xl font-semibold leading-tight text-theme-strong">
-            Question bank catalog
-        </h2>
-    );
-    const adminHeader = (
-        <h2 className="text-xl font-semibold leading-tight text-theme-strong">
-            Question bank catalog
-        </h2>
-    );
-
-    if (user?.role === 'hod') {
-        return <HodLayout header={hodHeader}>{body}</HodLayout>;
-    }
 
     return <AdminLayout header={adminHeader}>{body}</AdminLayout>;
 }

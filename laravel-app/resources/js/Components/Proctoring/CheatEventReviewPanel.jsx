@@ -77,7 +77,7 @@ export default function CheatEventReviewPanel({ grouped, examId }) {
                                                         ? new Date(
                                                               row.created_at,
                                                           ).toLocaleString()
-                                                        : '—'}
+                                                        : '-'}
                                                 </td>
                                                 <td className="py-2 pr-2 font-mono">
                                                     {row.event_type}
@@ -94,7 +94,7 @@ export default function CheatEventReviewPanel({ grouped, examId }) {
                                                     {row.penalty_applied &&
                                                     row.penalty_marks != null
                                                         ? `−${Number(row.penalty_marks).toFixed(2)}`
-                                                        : '—'}
+                                                        : '-'}
                                                 </td>
                                                 <td className="py-2 pr-2">
                                                     <div className="flex flex-wrap gap-1">

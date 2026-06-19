@@ -1,6 +1,9 @@
 import PracticeHubLayout from '@/Layouts/PracticeHubLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import axios from 'axios';
+import QuizPlayer from '@/Components/QuizPlayer';
+import QuizResult from '@/Components/QuizResult';
 
 function QuizCard({ quiz, extraQuery }) {
     const q = extraQuery || {};
@@ -12,13 +15,13 @@ function QuizCard({ quiz, extraQuery }) {
         ...(q.level ? { level: q.level } : {}),
     });
     const attempts = quiz.attempts_count ?? 0;
-    const diff = quiz.difficulty_level || '—';
+    const diff = quiz.difficulty_level || '-';
     const duration =
         quiz.practice_duration_minutes != null
             ? `${quiz.practice_duration_minutes} min`
             : quiz.duration != null
               ? `${quiz.duration} min`
-              : '—';
+              : '-';
 
     return (
         <Link
@@ -55,7 +58,6 @@ function QuizCard({ quiz, extraQuery }) {
                 <span>Difficulty: {diff}</span>
                 <span>Est. time: {duration}</span>
                 <span>{attempts} attempts</span>
-                {quiz.owner?.name ? <span>Lecturer: {quiz.owner.name}</span> : null}
             </div>
         </Link>
     );
@@ -76,18 +78,33 @@ export default function Index({
     difficulties,
     lecturers,
 }) {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
     const [local, setLocal] = useState({
-        school_id: filters.school_id ?? '',
-        department_id: filters.department_id ?? '',
-        program: filters.program ?? '',
-        level: filters.level ?? '',
-        course: filters.course ?? '',
-        topic: filters.topic ?? '',
-        lecturer_id: filters.lecturer_id ?? '',
-        difficulty: filters.difficulty ?? '',
-        search: filters.search ?? '',
-        sort: sort ?? 'featured',
+        school_id: filters?.school_id || '',
+        department_id: filters?.department_id || '',
+        program: filters?.program || '',
+        level: filters?.level || '',
+        course: filters?.course || '',
+        topic: filters?.topic || '',
+        difficulty: filters?.difficulty || '',
+        search: filters?.search || '',
+        sort: sort || 'featured',
     });
+
+    const [practiceForm, setPracticeForm] = useState({
+        topic: '',
+        difficulty: 'medium',
+        count: 20
+    });
+
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [practiceSession, setPracticeSession] = useState(null);
+    const [questions, setQuestions] = useState(null);
+    const [quizResult, setQuizResult] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
 
     const extraQuery = useMemo(
         () => ({
@@ -111,7 +128,6 @@ export default function Index({
             level: '',
             course: '',
             topic: '',
-            lecturer_id: '',
             difficulty: '',
             search: '',
             sort: local.sort || 'featured',
@@ -124,6 +140,50 @@ export default function Index({
         );
     };
 
+    const startRandomPractice = async () => {
+        setIsGenerating(true);
+        setErrorMessage(null);
+        setQuizResult(null);
+        setPracticeSession(null);
+        setQuestions(null);
+        try {
+            const response = await axios.post(route('student.practice.generate'), practiceForm, {
+                headers: { Accept: 'application/json' }
+            });
+            if (response.data.practiceSession && response.data.questions) {
+                setPracticeSession(response.data.practiceSession);
+                setQuestions(response.data.questions);
+            }
+        } catch (error) {
+            console.error("Error generating practice:", error);
+            if (error.response?.data?.error) {
+                setErrorMessage(error.response.data.error);
+            } else {
+                setErrorMessage("Failed to generate practice. Please check your token balance or try another topic.");
+            }
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const submitPractice = async (responses) => {
+        if (!practiceSession) return;
+        setIsSubmitting(true);
+        try {
+            const response = await axios.post(route('student.practice.submit', practiceSession.id), { responses }, {
+                headers: { Accept: 'application/json' }
+            });
+            if (response.data.practiceSession && response.data.questions) {
+                setQuizResult(response.data);
+            }
+        } catch (error) {
+            console.error("Error submitting practice:", error);
+            alert("Failed to submit practice. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <PracticeHubLayout>
             <Head title="Practice quizzes" />
@@ -132,157 +192,104 @@ export default function Index({
                     Level up before exam day
                 </h1>
                 <p className="mx-auto mt-3 max-w-2xl text-theme-dim sm:mx-0">
-                    Explore lecturer-crafted practice quizzes. Filter by school, program, or topic — then
+                    Explore lecturer-crafted practice quizzes. Filter by school, program, or topic - then
                     practice at your own pace with instant feedback.
                 </p>
+                {user && (
+                    <div className="mt-8 rounded-2xl border border-violet-500/30 bg-violet-500/5 p-4 sm:p-5 max-w-4xl mx-auto sm:mx-0 text-left">
+                        <h3 className="text-sm font-semibold text-violet-500 mb-3 flex items-center justify-center sm:justify-start gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            Generate Custom Practice
+                        </h3>
+
+                        {errorMessage && (
+                            <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-600 dark:text-rose-400">
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row items-end gap-3">
+                            <div className="w-full sm:w-2/5">
+                                <label className="block text-xs font-medium text-theme-dim mb-1">Topic</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Algebra, Biology..."
+                                    className="w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2.5 text-sm text-theme-strong focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder:text-theme-dim/30"
+                                    value={practiceForm.topic}
+                                    onChange={e => setPracticeForm(s => ({ ...s, topic: e.target.value }))}
+                                />
+                            </div>
+                            <div className="w-full sm:w-1/4">
+                                <label className="block text-xs font-medium text-theme-dim mb-1">Difficulty</label>
+                                <select
+                                    className="w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2.5 text-sm text-theme-strong focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                                    value={practiceForm.difficulty}
+                                    onChange={e => setPracticeForm(s => ({ ...s, difficulty: e.target.value }))}
+                                >
+                                    <option value="easy">Easy</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="hard">Hard</option>
+                                </select>
+                            </div>
+                            <div className="w-full sm:w-1/4">
+                                <label className="block text-xs font-medium text-theme-dim mb-1">Questions</label>
+                                <select
+                                    className="w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2.5 text-sm text-theme-strong focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                                    value={practiceForm.count}
+                                    onChange={e => setPracticeForm(s => ({ ...s, count: parseInt(e.target.value) }))}
+                                >
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                </select>
+                            </div>
+                            <button
+                                onClick={startRandomPractice}
+                                disabled={isGenerating}
+                                className="w-full sm:w-auto rounded-xl bg-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-900/30 transition hover:bg-violet-500 hover:scale-[1.02] active:scale-95 whitespace-nowrap flex items-center justify-center min-w-[140px]"
+                            >
+                                {isGenerating ? (
+                                    <div className="flex items-center gap-2">
+                                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Generating...</span>
+                                    </div>
+                                ) : 'Quick Practice'}
+                            </button>
+                        </div>
+
+                        {/* Inline Quiz Player / Result */}
+                        {questions && !quizResult && (
+                            <div className="mt-8 border-t border-theme-line pt-8">
+                                <QuizPlayer 
+                                    practiceSession={practiceSession} 
+                                    questions={questions} 
+                                    onSubmit={submitPractice} 
+                                    processing={isSubmitting} 
+                                />
+                            </div>
+                        )}
+
+                        {quizResult && (
+                            <div className="mt-8 border-t border-theme-line pt-8">
+                                <QuizResult 
+                                    practiceSession={quizResult.practiceSession} 
+                                    questions={quizResult.questions} 
+                                    onReset={() => {
+                                        setQuizResult(null);
+                                        setPracticeSession(null);
+                                        setQuestions(null);
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            <div className="mb-10 rounded-2xl border border-theme-line bg-theme-highlight p-4 sm:p-6">
-                <div className="grid gap-4 lg:grid-cols-4">
-                    <div className="lg:col-span-2">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-theme-dim">
-                            Search
-                        </label>
-                        <input
-                            className="mt-1 w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2 text-sm text-theme-strong placeholder:text-slate-600 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                            placeholder="Title, course, topic, exam code…"
-                            value={local.search}
-                            onChange={(e) => setLocal((s) => ({ ...s, search: e.target.value }))}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-semibold uppercase tracking-wider text-theme-dim">
-                            Sort
-                        </label>
-                        <select
-                            className="mt-1 w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2 text-sm text-theme-strong focus:border-sky-500 focus:outline-none"
-                            value={local.sort}
-                            onChange={(e) => setLocal((s) => ({ ...s, sort: e.target.value }))}
-                        >
-                            <option value="featured">Featured first</option>
-                            <option value="newest">Newest</option>
-                            <option value="most_attempted">Most attempted</option>
-                            <option value="ai_recommended">AI recommended</option>
-                        </select>
-                    </div>
-                    <div className="flex items-end gap-2">
-                        <button
-                            type="button"
-                            onClick={applyFilters}
-                            className="flex-1 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-500"
-                        >
-                            Apply filters
-                        </button>
-                        <button
-                            type="button"
-                            onClick={clearFilters}
-                            className="rounded-xl border border-theme-line px-3 py-2 text-sm font-medium text-theme-muted transition hover:border-theme-line hover:bg-white/[0.04]"
-                        >
-                            Clear all
-                        </button>
-                    </div>
-                </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.school_id}
-                        onChange={(e) => setLocal((s) => ({ ...s, school_id: e.target.value }))}
-                    >
-                        <option value="">All schools</option>
-                        {schools.map((x) => (
-                            <option key={x.id} value={x.id}>
-                                {x.name}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.department_id}
-                        onChange={(e) => setLocal((s) => ({ ...s, department_id: e.target.value }))}
-                    >
-                        <option value="">All departments</option>
-                        {departments.map((x) => (
-                            <option key={x.id} value={x.id}>
-                                {x.name}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.program}
-                        onChange={(e) => setLocal((s) => ({ ...s, program: e.target.value }))}
-                    >
-                        <option value="">All programs</option>
-                        {programs
-                            .filter(Boolean)
-                            .map((p) => (
-                                <option key={p} value={p}>
-                                    {p}
-                                </option>
-                            ))}
-                    </select>
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.level}
-                        onChange={(e) => setLocal((s) => ({ ...s, level: e.target.value }))}
-                    >
-                        <option value="">All levels</option>
-                        {levels
-                            .filter(Boolean)
-                            .map((p) => (
-                                <option key={p} value={p}>
-                                    {p}
-                                </option>
-                            ))}
-                    </select>
-                    <input
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        placeholder="Course contains…"
-                        value={local.course}
-                        onChange={(e) => setLocal((s) => ({ ...s, course: e.target.value }))}
-                    />
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.topic}
-                        onChange={(e) => setLocal((s) => ({ ...s, topic: e.target.value }))}
-                    >
-                        <option value="">All topics</option>
-                        {topics
-                            .filter(Boolean)
-                            .map((p) => (
-                                <option key={p} value={p}>
-                                    {p}
-                                </option>
-                            ))}
-                    </select>
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.lecturer_id}
-                        onChange={(e) => setLocal((s) => ({ ...s, lecturer_id: e.target.value }))}
-                    >
-                        <option value="">All lecturers</option>
-                        {lecturers.map((x) => (
-                            <option key={x.id} value={x.id}>
-                                {x.name}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        className="rounded-lg border border-theme-line bg-theme-elevated px-2 py-2 text-sm"
-                        value={local.difficulty}
-                        onChange={(e) => setLocal((s) => ({ ...s, difficulty: e.target.value }))}
-                    >
-                        <option value="">Any difficulty</option>
-                        {difficulties
-                            .filter(Boolean)
-                            .map((p) => (
-                                <option key={p} value={p}>
-                                    {p}
-                                </option>
-                            ))}
-                    </select>
-                </div>
-            </div>
 
             {featured.length > 0 ? (
                 <section className="mb-12">
@@ -295,43 +302,7 @@ export default function Index({
                 </section>
             ) : null}
 
-            <div className="mb-12 grid gap-10 lg:grid-cols-2">
-                <section>
-                    <h2 className="mb-4 text-lg font-semibold text-theme-strong">AI recommended</h2>
-                    <div className="grid gap-4">
-                        {aiRecommended.length ? (
-                            aiRecommended.map((q) => <QuizCard key={q.id} quiz={q} extraQuery={extraQuery} />)
-                        ) : (
-                            <p className="text-sm text-theme-dim">No quizzes flagged for AI recommendation yet.</p>
-                        )}
-                    </div>
-                </section>
-                <section>
-                    <h2 className="mb-4 text-lg font-semibold text-theme-strong">Trending</h2>
-                    <div className="grid gap-4">
-                        {trending.length ? (
-                            trending.map((q) => <QuizCard key={q.id} quiz={q} extraQuery={extraQuery} />)
-                        ) : (
-                            <p className="text-sm text-theme-dim">Complete a few quizzes to see trending picks.</p>
-                        )}
-                    </div>
-                </section>
-            </div>
 
-            <section>
-                <h2 className="mb-4 text-lg font-semibold text-theme-strong">All matching quizzes</h2>
-                {quizzes.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-theme-line p-8 text-center text-theme-dim">
-                        No quizzes match your filters. Try clearing department or program filters.
-                    </p>
-                ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {quizzes.map((q) => (
-                            <QuizCard key={q.id} quiz={q} extraQuery={extraQuery} />
-                        ))}
-                    </div>
-                )}
-            </section>
         </PracticeHubLayout>
     );
 }

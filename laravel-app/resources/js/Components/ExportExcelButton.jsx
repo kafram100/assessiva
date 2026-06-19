@@ -85,7 +85,7 @@ export default function ExportExcelButton({
             a.remove();
             URL.revokeObjectURL(blobUrl);
         } catch {
-            setError('Network error — could not download the file.');
+            setError('Network error - could not download the file.');
         } finally {
             setLoading(false);
         }

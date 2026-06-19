@@ -127,33 +127,27 @@ export default function Create({ departments }) {
                             onChange={(e) => setData('role', e.target.value)}
                         >
                             <option value="lecturer">Lecturer</option>
-                            <option value="hod">HOD</option>
                         </select>
                         <InputError message={errors.role} className="mt-2" />
                     </div>
                     <div>
                         <InputLabel
                             htmlFor="department_id"
-                            value={
-                                data.role === 'hod'
-                                    ? 'Department (required)'
-                                    : 'Department (optional)'
-                            }
+                            value="Department (optional)"
                         />
                         <select
                             id="department_id"
-                            required={data.role === 'hod'}
                             className="mt-1 block w-full rounded-md border border-theme-line bg-theme-surface-soft px-3 py-2 text-sm text-theme-strong"
                             value={data.department_id}
                             onChange={(e) =>
                                 setData('department_id', e.target.value)
                             }
                         >
-                            <option value="">—</option>
+                            <option value="">-</option>
                             {departments.map((d) => (
                                 <option key={d.id} value={d.id}>
                                     {d.name}
-                                    {d.school ? ` — ${d.school.name}` : ''}
+                                    {d.school ? ` - ${d.school.name}` : ''}
                                 </option>
                             ))}
                         </select>

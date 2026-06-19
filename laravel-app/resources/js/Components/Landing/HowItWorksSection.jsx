@@ -1,16 +1,16 @@
 import { motion } from 'framer-motion';
 
 const steps = [
-    { n: '01', title: 'Create assessment', body: 'Author once with questions, timing, integrity rules, and cohorts.' },
-    { n: '02', title: 'AI analyzes', body: 'Fairness, difficulty, and predictive signals compile in real time.' },
-    { n: '03', title: 'Students learn', body: 'Practice hub and formal paths deliver feedback without mixing contexts.' },
-    { n: '04', title: 'AI predicts', body: 'Risk, revision focus, and institutional trends surface early.' },
-    { n: '05', title: 'Institutions improve', body: 'Close the loop with evidence backed policy and pedagogy.' },
+    { n: '01', title: 'Create Account', body: 'Sign up and get instant access to your free practice questions tier.' },
+    { n: '02', title: 'Take a Quiz', body: 'Generate a 20-question practice test pulled from our extensive exam databank.' },
+    { n: '03', title: 'Get Graded', body: 'Submit your answers and get instantly graded with detailed performance metrics.' },
+    { n: '04', title: 'AI Feedback', body: 'NovaGrade analyzes your mistakes and explains the correct answers step-by-step.' },
+    { n: '05', title: 'Top Up & Master', body: 'Need more practice? Top up your tokens easily and keep acing your exams.' },
 ];
 
 export default function HowItWorksSection() {
     return (
-        <section className="relative z-10 border-t border-theme-line bg-[color:var(--mesh-bg)] px-4 py-24 sm:px-6 lg:px-8">
+        <section id="how-it-works" className="relative z-10 border-t border-theme-line bg-[color:var(--mesh-bg)] px-4 py-24 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -19,7 +19,7 @@ export default function HowItWorksSection() {
                     className="max-w-2xl"
                 >
                     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ai-glow/90">How it works</p>
-                    <h2 className="mt-3 font-display text-3xl font-bold text-theme-strong sm:text-4xl">From signal to strategy</h2>
+                    <h2 className="mt-3 font-display text-3xl font-bold text-theme-strong sm:text-4xl">Your path to exam success</h2>
                 </motion.div>
 
                 <div className="relative mt-16">

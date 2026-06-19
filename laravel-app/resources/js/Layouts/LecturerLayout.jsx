@@ -343,9 +343,6 @@ function roleLabel(role) {
     if (role === 'admin') {
         return 'Admin';
     }
-    if (role === 'hod') {
-        return 'HOD';
-    }
     return 'Lecturer';
 }
 

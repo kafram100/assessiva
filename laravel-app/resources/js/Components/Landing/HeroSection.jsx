@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
@@ -12,6 +12,7 @@ const fadeUp = {
 };
 
 export default function HeroSection() {
+    const { auth } = usePage().props;
     const [imgError, setImgError] = useState(false);
 
     return (
@@ -39,8 +40,7 @@ export default function HeroSection() {
                         animate="show"
                         className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-theme-strong sm:text-5xl lg:text-[3.25rem] xl:text-6xl"
                     >
-                        <span className="ai-text-gradient">Novagrade.ai</span>
-                        {' '}for Future Universities
+                        Stop Guessing, <span className="ai-text-gradient">Start Acing</span>
                     </motion.h1>
 
                     <motion.p
@@ -50,8 +50,7 @@ export default function HeroSection() {
                         animate="show"
                         className="mt-6 max-w-xl text-base leading-relaxed text-theme-muted sm:text-lg"
                     >
-                        Transforming university education with AI powered assessment, predictive analytics,
-                        personalized learning, and intelligent academic insights.
+                        Never walk into an exam unprepared again. NovaGrade analyzes your knowledge, tests you with real questions, and explains exactly how to improve.
                     </motion.p>
 
                     <motion.div
@@ -62,19 +61,19 @@ export default function HeroSection() {
                         className="mt-10 flex flex-wrap items-center gap-4"
                     >
                         <Link
-                            href={route('register')}
-                            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full px-8 py-3.5 text-sm font-semibold text-white no-underline"
+                            href={auth.user ? route('practice-quizzes.index') : route('register')}
+                            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full px-4 sm:px-8 py-3.5 text-sm font-semibold text-white no-underline"
                         >
                             <span className="absolute inset-0 bg-gradient-to-r from-ai-accent via-ai-accent-deep to-ai-accent opacity-90 transition group-hover:opacity-100" />
                             <span className="absolute inset-0 bg-ai-glow opacity-0 blur-xl transition group-hover:opacity-40" />
-                            <span className="relative">Get Started</span>
+                            <span className="relative">Test Your Knowledge</span>
                         </Link>
-                        <Link
-                            href={route('practice-quizzes.index')}
-                            className="inline-flex items-center justify-center rounded-full border border-theme-line bg-theme-highlight px-8 py-3.5 text-sm font-semibold text-theme-muted no-underline backdrop-blur-md transition hover:border-ai-accent/50 hover:text-theme-strong"
+                        <a
+                            href="#how-it-works"
+                            className="inline-flex items-center justify-center rounded-full border border-theme-line bg-theme-highlight px-4 sm:px-8 py-3.5 text-sm font-semibold text-theme-muted no-underline backdrop-blur-md transition hover:border-ai-accent/50 hover:text-theme-strong"
                         >
-                            Explore Practice Quizzes
-                        </Link>
+                            See How It Works
+                        </a>
                     </motion.div>
 
                     <motion.dl
@@ -82,12 +81,12 @@ export default function HeroSection() {
                         variants={fadeUp}
                         initial="hidden"
                         animate="show"
-                        className="mt-14 grid grid-cols-2 gap-6 sm:grid-cols-3"
+                        className="mt-14 grid grid-cols-1 sm:grid-cols- gap-6 sm:grid-cols-3"
                     >
                         {[
-                            ['Predictive', 'Risk & success signals'],
-                            ['Personal', 'Learning Twin & revision'],
-                            ['Trusted', 'Fairness & integrity'],
+                            ['Curated Exams', 'Randomized 20-question sets'],
+                            ['AI Feedback', 'Detailed answer explanations'],
+                            ['Unlimited Practice', 'Top-up for endless questions'],
                         ].map(([t, d]) => (
                             <div
                                 key={t}
@@ -137,21 +136,6 @@ export default function HeroSection() {
                                 )}
                                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[color:var(--bg-main)] via-[color:var(--bg-main)]/40 to-transparent" />
                             </div>
-
-                            <motion.div
-                                className="absolute -right-4 top-1/4 hidden rounded-xl border border-theme-line bg-theme-glass-2 px-3 py-2 text-[0.65rem] font-medium text-ai-accent shadow-lg backdrop-blur-md sm:block"
-                                animate={{ y: [0, -6, 0] }}
-                                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                            >
-                                Academic health · 94
-                            </motion.div>
-                            <motion.div
-                                className="absolute -left-2 bottom-1/4 hidden rounded-xl border border-theme-line bg-theme-glass-2 px-3 py-2 text-[0.65rem] font-medium text-theme-muted shadow-lg backdrop-blur-md sm:block"
-                                animate={{ y: [0, 8, 0] }}
-                                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-                            >
-                                Twin synced
-                            </motion.div>
                         </motion.div>
                     </div>
                 </motion.div>

@@ -38,66 +38,12 @@ function StatusBadge({ status }) {
     );
 }
 
-function PromoteToHodCell({ userId, departments }) {
-    const [deptId, setDeptId] = useState('');
 
-    if (departments.length === 0) {
-        return null;
-    }
-
-    return (
-        <div className="mt-2 border-t border-theme-line pt-2">
-            <label className="text-[0.65rem] font-medium uppercase tracking-wide text-theme-dim">
-                Promote to HOD
-            </label>
-            <div className="mt-1 flex flex-wrap items-end gap-2">
-                <select
-                    value={deptId}
-                    onChange={(e) => setDeptId(e.target.value)}
-                    className="max-w-[220px] rounded border border-theme-line bg-theme-mesh px-2 py-1 text-xs text-theme-strong"
-                >
-                    <option value="">Choose department…</option>
-                    {departments.map((d) => (
-                        <option key={d.id} value={d.id}>
-                            {d.name}
-                            {d.school?.name ? ` (${d.school.name})` : ''}
-                        </option>
-                    ))}
-                </select>
-                <button
-                    type="button"
-                    disabled={!deptId}
-                    onClick={() => {
-                        if (
-                            !confirm(
-                                'Promote this lecturer to Head of Department for the selected department?',
-                            )
-                        ) {
-                            return;
-                        }
-                        router.post(
-                            route('admin.lecturers.promote-to-hod', userId),
-                            { department_id: parseInt(deptId, 10) },
-                        );
-                    }}
-                    className="rounded bg-sky-800 px-2 py-1 text-xs text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                    Promote
-                </button>
-            </div>
-        </div>
-    );
-}
 
 function RoleBadge({ role }) {
-    const isHod = role === 'hod';
     return (
         <span
-            className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${
-                isHod
-                    ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-200'
-                    : 'bg-theme-highlight text-theme-muted'
-            }`}
+            className="rounded px-2 py-0.5 text-xs font-semibold uppercase bg-theme-highlight text-theme-muted"
         >
             {role}
         </span>
@@ -115,15 +61,7 @@ function DepartmentAssignCell({ staff, departments }) {
         );
     }, [staff.department_id]);
 
-    const isHod = staff.role === 'hod';
-    const initial =
-        staff.department_id != null ? String(staff.department_id) : '';
-    const dirty = deptId !== initial;
-
     const save = () => {
-        if (isHod && !deptId) {
-            return;
-        }
         router.put(route('admin.lecturers.department.update', staff.id), {
             department_id: deptId === '' ? null : parseInt(deptId, 10),
         });
@@ -154,9 +92,7 @@ function DepartmentAssignCell({ staff, departments }) {
                 onChange={(e) => setDeptId(e.target.value)}
                 className="max-w-[240px] rounded border border-theme-line bg-theme-mesh px-2 py-1 text-xs text-theme-strong"
             >
-                {!isHod ? (
-                    <option value="">— No department —</option>
-                ) : null}
+                <option value="">- No department -</option>
                 {departments.map((d) => (
                     <option key={d.id} value={d.id}>
                         {d.name}
@@ -166,7 +102,7 @@ function DepartmentAssignCell({ staff, departments }) {
             </select>
             <button
                 type="button"
-                disabled={!dirty || (isHod && !deptId)}
+                disabled={!dirty}
                 onClick={save}
                 className="self-start rounded bg-theme-highlight px-2 py-1 text-xs font-medium text-theme-strong hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -191,12 +127,7 @@ export default function Index({ lecturers, departments = [] }) {
                         >
                             Pending requests
                         </Link>
-                        <Link
-                            href={route('admin.hods.index')}
-                            className="rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-200 hover:bg-sky-500/20"
-                        >
-                            HOD management
-                        </Link>
+
                         <Link
                             href={route('admin.lecturers.create')}
                             className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500"
@@ -212,7 +143,7 @@ export default function Index({ lecturers, departments = [] }) {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="overflow-hidden rounded-lg border border-theme-line bg-theme-glass">
                     <div className="border-b border-theme-line px-4 py-3 text-sm font-medium text-theme-muted">
-                        Lecturer / HOD accounts
+                        Lecturer accounts
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-theme text-sm">
@@ -260,7 +191,7 @@ export default function Index({ lecturers, departments = [] }) {
                                                         : ''}
                                                 </>
                                             ) : (
-                                                '—'
+                                                '-'
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
@@ -276,18 +207,7 @@ export default function Index({ lecturers, departments = [] }) {
                                                 <>
                                                     <button
                                                         type="button"
-                                                        disabled={
-                                                            lec.role ===
-                                                                'hod' &&
-                                                            !lec.department_id
-                                                        }
-                                                        title={
-                                                            lec.role ===
-                                                                'hod' &&
-                                                            !lec.department_id
-                                                                ? 'Assign a department before approving this HOD.'
-                                                                : undefined
-                                                        }
+                                                        disabled={false}
                                                         onClick={() =>
                                                             router.post(
                                                                 route(
@@ -325,16 +245,7 @@ export default function Index({ lecturers, departments = [] }) {
                                             {lec.status === 'rejected' && (
                                                 <button
                                                     type="button"
-                                                    disabled={
-                                                        lec.role === 'hod' &&
-                                                        !lec.department_id
-                                                    }
-                                                    title={
-                                                        lec.role === 'hod' &&
-                                                        !lec.department_id
-                                                            ? 'Assign a department before approving this HOD.'
-                                                            : undefined
-                                                    }
+                                                    disabled={false}
                                                     onClick={() =>
                                                         router.post(
                                                             route(
@@ -372,12 +283,7 @@ export default function Index({ lecturers, departments = [] }) {
                                                         >
                                                             Suspend
                                                         </button>
-                                                        <PromoteToHodCell
-                                                            userId={lec.id}
-                                                            departments={
-                                                                departments
-                                                            }
-                                                        />
+
                                                     </>
                                                 )}
                                             <DepartmentAssignCell

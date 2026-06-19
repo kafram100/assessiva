@@ -46,7 +46,7 @@ export default function Institutional({ reports }) {
                         (reports || []).map((r) => (
                             <AnalyticsSummaryCard
                                 key={r.id}
-                                title={`${r.course_name || 'Course'} · health ${r.course_health_score ?? '—'}`}
+                                title={`${r.course_name || 'Course'} · health ${r.course_health_score ?? '-'}`}
                             >
                                 <ul className="list-disc space-y-1 pl-4">
                                     {(r.summary || []).slice(0, 4).map((s, i) => (

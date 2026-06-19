@@ -11,8 +11,8 @@ const card = {
 
 const items = [
     {
-        title: 'AI Learning Twin',
-        desc: 'Mirror each learner’s trajectory, including strengths, friction points, and next best actions, in one living profile.',
+        title: 'Randomized Exams',
+        desc: 'Take 20-question randomized quizzes mixed with theory, MCQs, and fill-ins to test your true knowledge.',
         icon: (
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M12 3c4.97 0 9 3.58 9 8s-4.03 8-9 8c-1.5 0-2.91-.36-4.12-1" strokeLinecap="round" />
@@ -23,8 +23,8 @@ const items = [
         ),
     },
     {
-        title: 'AI Fairness Engine',
-        desc: 'Surface bias risk, item fairness, and cohort equity signals before decisions harden in stone.',
+        title: 'Detailed AI Feedback',
+        desc: 'Receive deep analysis and step-by-step explanations for every question you get wrong so you never make the same mistake twice.',
         icon: (
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M12 3l7 4v5c0 5-3.5 9-7 11-3.5-2-7-6-7-11V7l7-4z" strokeLinejoin="round" />
@@ -33,8 +33,8 @@ const items = [
         ),
     },
     {
-        title: 'Predictive Analytics',
-        desc: 'Early warnings, trajectory forecasts, and institutional signals tuned for academic operations.',
+        title: 'Vast Question Bank',
+        desc: 'Never run out of practice material with a constantly updated database of challenging exam questions.',
         icon: (
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M4 19V5M4 19h16M8 15l3-3 3 2 4-5" strokeLinecap="round" strokeLinejoin="round" />
@@ -42,8 +42,8 @@ const items = [
         ),
     },
     {
-        title: 'Personalized Revision',
-        desc: 'Adaptive revision paths that respect real performance, not generic study checklists.',
+        title: 'Real-time Results',
+        desc: 'Get your scores and comprehensive feedback delivered straight to your email the moment you finish your quiz.',
         icon: (
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M4 19h16M7 16l4-12 3 9 3-6 3 9" strokeLinecap="round" strokeLinejoin="round" />
@@ -51,8 +51,8 @@ const items = [
         ),
     },
     {
-        title: 'AI Practice Hub',
-        desc: 'Self paced mastery loops with instant feedback, separate from high stakes assessment.',
+        title: 'Pay-As-You-Go',
+        desc: 'Enjoy a free tier of practice questions, then simply top-up your account securely to unlock unlimited access.',
         icon: (
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -61,8 +61,8 @@ const items = [
         ),
     },
     {
-        title: 'Integrity & Proctoring',
-        desc: 'Layered integrity signals for formal exams, without polluting the learning sandbox.',
+        title: 'Performance Tracking',
+        desc: 'Monitor your progress over time, identify weak spots, and focus your revision where it matters most.',
         icon: (
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinejoin="round" />
@@ -83,12 +83,12 @@ export default function CapabilitiesSection() {
                     transition={{ duration: 0.6 }}
                     className="max-w-2xl"
                 >
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ai-glow/90">Capabilities</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ai-glow/90">Features</p>
                     <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-theme-strong sm:text-4xl">
-                        Intelligence that spans the full academic stack
+                        Everything you need to ace your next exam
                     </h2>
                     <p className="mt-4 text-theme-muted">
-                        Modular AI surfaces let you compose what your institution needs today and extend tomorrow.
+                        A smarter way to practice. Get personalized feedback, tackle randomized questions, and track your progress all in one place.
                     </p>
                 </motion.div>
 

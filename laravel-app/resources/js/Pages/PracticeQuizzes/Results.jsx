@@ -16,7 +16,7 @@ export default function Results({ quiz, attempt, questions }) {
         <PracticeHubLayout>
             <Head title={`Results · ${quiz.title}`} />
             <div className="mx-auto max-w-3xl">
-                <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 to-[#0d1117] p-8 text-center shadow-2xl shadow-emerald-900/20">
+                <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 to-[#0d1117] p-4 sm:p-8 text-center shadow-2xl shadow-emerald-900/20">
                     <p className="text-sm font-medium uppercase tracking-widest text-emerald-300/90">
                         Practice complete
                     </p>
@@ -83,7 +83,7 @@ export default function Results({ quiz, attempt, questions }) {
                                 {q.q_type === 'mcq' && q.correct_option ? (
                                     <p className="mt-2 text-theme-dim">
                                         Correct: <span className="text-emerald-300">{q.correct_option}</span> ·
-                                        Yours: {q.your_answer || '—'}
+                                        Yours: {q.your_answer || '-'}
                                     </p>
                                 ) : null}
                                 {(q.q_type === 'fill_in' || q.q_type === 'theory') && q.model_answer ? (

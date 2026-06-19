@@ -22,7 +22,7 @@ export default function AiGenerationLoadingOverlay({
                 className="absolute inset-0 bg-[color:var(--modal-backdrop)] backdrop-blur-md"
                 aria-hidden
             />
-            <div className="ai-glass-card relative w-full max-w-md p-8 text-center">
+            <div className="ai-glass-card relative w-full max-w-md p-4 sm:p-8 text-center">
                 <div
                     className="mx-auto mb-6 h-14 w-14 rounded-full border-2 border-theme-line border-t-ai-accent border-r-ai-glow-soft animate-spin"
                     aria-hidden

@@ -4,7 +4,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 
 function fmt(dt) {
     if (!dt) {
-        return '—';
+        return '-';
     }
     return new Date(dt).toLocaleString();
 }
@@ -55,7 +55,7 @@ export default function Show({ exam, attempts, now }) {
                 </h2>
             }
         >
-            <Head title={`Attempts — ${exam.title}`} />
+            <Head title={`Attempts - ${exam.title}`} />
 
             <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                 <Link
@@ -88,7 +88,7 @@ export default function Show({ exam, attempts, now }) {
                         <div>
                             <span className="text-theme-dim">Lecturer:</span>{' '}
                             <span className="text-theme-muted">
-                                {u?.username ?? '—'}
+                                {u?.username ?? '-'}
                             </span>
                             {u?.email && (
                                 <span className="text-theme-dim">
@@ -104,11 +104,11 @@ export default function Show({ exam, attempts, now }) {
                                     <>
                                         {u.department.name}
                                         {u.department.school
-                                            ? ` — ${u.department.school.name}`
+                                            ? ` - ${u.department.school.name}`
                                             : ''}
                                     </>
                                 ) : (
-                                    '—'
+                                    '-'
                                 )}
                             </span>
                         </div>
@@ -180,7 +180,7 @@ export default function Show({ exam, attempts, now }) {
                                 {attempts.data.map((a) => (
                                     <tr key={a.id} className="hover:bg-theme-elevated">
                                         <td className="px-4 py-3">
-                                            {a.student_fullname ?? '—'}
+                                            {a.student_fullname ?? '-'}
                                         </td>
                                         <td className="px-4 py-3 font-mono text-xs">
                                             {a.student_index}
@@ -189,7 +189,7 @@ export default function Show({ exam, attempts, now }) {
                                             className="max-w-[10rem] truncate px-4 py-3 text-xs text-theme-dim"
                                             title={a.student_email ?? ''}
                                         >
-                                            {a.student_email ?? '—'}
+                                            {a.student_email ?? '-'}
                                         </td>
                                         <td className="px-4 py-3">
                                             {a.status === 'ongoing' && (
@@ -212,7 +212,7 @@ export default function Show({ exam, attempts, now }) {
                                         <td className="px-4 py-3 text-xs">
                                             {a.status === 'completed'
                                                 ? `${a.score}/${a.total_marks}`
-                                                : '—'}
+                                                : '-'}
                                         </td>
                                         <td className="whitespace-nowrap px-4 py-3 text-xs text-theme-dim">
                                             {fmt(a.start_time)}

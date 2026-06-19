@@ -30,18 +30,22 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
         if (! $user instanceof User) {
-            return redirect()->intended(route('lecturer.dashboard', absolute: false));
+            return redirect()->route('admin.management.dashboard');
         }
 
         if ($user->isAdmin()) {
-            return redirect()->intended(route('admin.dashboard', absolute: false));
+            return redirect()->route('admin.dashboard');
         }
 
         if ($user->isHod()) {
-            return redirect()->intended(route('hod.dashboard', absolute: false));
+            return redirect()->route('hod.dashboard');
         }
 
-        return redirect()->intended(route('lecturer.dashboard', absolute: false));
+        if ($user->isStudent()) {
+            return redirect()->route('practice-quizzes.index');
+        }
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function destroy(Request $request): RedirectResponse

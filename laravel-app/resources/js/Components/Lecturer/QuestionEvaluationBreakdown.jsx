@@ -65,7 +65,7 @@ export default function QuestionEvaluationBreakdown({
                         <span
                             className={`rounded border px-2 py-0.5 font-semibold uppercase tracking-wide ${statusTone(answer.evaluation_status)}`}
                         >
-                            {answer.evaluation_status || '—'}
+                            {answer.evaluation_status || '-'}
                         </span>
                         {conf != null && (
                             <span className="rounded border border-sky-600/40 bg-sky-950/30 px-2 py-0.5 text-sky-100">
@@ -122,7 +122,7 @@ export default function QuestionEvaluationBreakdown({
                         <p>
                             <span className="text-theme-dim">Correct option:</span>{' '}
                             <span className="font-mono text-theme-strong">
-                                {question.correct_option ?? '—'}
+                                {question.correct_option ?? '-'}
                             </span>
                         </p>
                     )}
@@ -133,7 +133,7 @@ export default function QuestionEvaluationBreakdown({
                             <p className="mt-1 whitespace-pre-wrap rounded bg-theme-glass p-2 font-mono text-theme-strong">
                                 {answer.expected_answer_snapshot ||
                                     question.correct_option ||
-                                    '—'}
+                                    '-'}
                             </p>
                         </div>
                     )}
@@ -190,7 +190,7 @@ export default function QuestionEvaluationBreakdown({
                                         ))
                                     ) : (
                                         <li className="list-none text-theme-dim">
-                                            —
+                                            -
                                         </li>
                                     )}
                                 </ul>
@@ -206,7 +206,7 @@ export default function QuestionEvaluationBreakdown({
                                         ))
                                     ) : (
                                         <li className="list-none text-theme-dim">
-                                            —
+                                            -
                                         </li>
                                     )}
                                 </ul>

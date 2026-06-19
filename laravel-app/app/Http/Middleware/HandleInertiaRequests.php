@@ -33,6 +33,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'admin_permissions' => $request->user()?->isAdmin() 
+                    ? ($request->user()->id === 1 ? ['*'] : ($request->user()->permissions ?? [])) 
+                    : [],
             ],
             'hodContext' => function () use ($request) {
                 $user = $request->user();

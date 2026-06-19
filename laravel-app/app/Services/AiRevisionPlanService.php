@@ -270,7 +270,7 @@ class AiRevisionPlanService
         if ($q->q_type === QuestionType::Mcq) {
             $key = strtoupper(trim((string) ($q->correct_option ?? '')));
             if ($key === '') {
-                return '—';
+                return '-';
             }
             $field = 'option_'.strtolower($key);
             $text = trim((string) ($q->{$field} ?? ''));

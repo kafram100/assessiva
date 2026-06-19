@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 function fmt(dt) {
     if (!dt) {
-        return '—';
+        return '-';
     }
     return new Date(dt).toLocaleString();
 }
@@ -174,7 +174,7 @@ export default function Index({
                                     <option key={d.id} value={d.id}>
                                         {d.name}
                                         {d.school
-                                            ? ` — ${d.school.name}`
+                                            ? ` - ${d.school.name}`
                                             : ''}
                                     </option>
                                 ))}
@@ -298,18 +298,18 @@ export default function Index({
                                                     : ''}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {u?.username ?? '—'}
+                                                {u?.username ?? '-'}
                                             </td>
                                             <td className="px-4 py-3 text-xs">
                                                 {u?.department ? (
                                                     <>
                                                         {u.department.name}
                                                         {u.department.school
-                                                            ? ` — ${u.department.school.name}`
+                                                            ? ` - ${u.department.school.name}`
                                                             : ''}
                                                     </>
                                                 ) : (
-                                                    '—'
+                                                    '-'
                                                 )}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-3 text-xs">

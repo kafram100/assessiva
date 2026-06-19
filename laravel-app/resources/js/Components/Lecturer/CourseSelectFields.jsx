@@ -92,7 +92,7 @@ export default function CourseSelectFields({
                         </option>
                         {courses.map((c) => (
                             <option key={c.id} value={c.id}>
-                                {c.code ? `${c.code} — ` : ''}
+                                {c.code ? `${c.code} - ` : ''}
                                 {c.name}
                             </option>
                         ))}

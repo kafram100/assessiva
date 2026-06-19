@@ -5,7 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 
-/** Full document navigation — Blade student routes are not Inertia pages. */
+/** Full document navigation - Blade student routes are not Inertia pages. */
 const studentEntryHref = () => route('student.entry');
 
 export default function Lookup({ prefill = { exam_code: '', student_index: '' } }) {

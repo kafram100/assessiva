@@ -184,7 +184,7 @@ class StudentResultController extends Controller
     }
 
     /**
-     * Per-question feedback and summaries — only when results are released.
+     * Per-question feedback and summaries - only when results are released.
      *
      * @return array<string, mixed>
      */

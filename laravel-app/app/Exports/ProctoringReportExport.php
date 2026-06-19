@@ -17,7 +17,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
 /**
- * Flattened proctoring activity for Excel — activity logs, cheat events, and incidents.
+ * Flattened proctoring activity for Excel - activity logs, cheat events, and incidents.
  * Rows are sorted by timestamp (newest first). Does not call AI or alter scores.
  */
 class ProctoringReportExport implements FromCollection, ShouldAutoSize, WithHeadings, WithTitle

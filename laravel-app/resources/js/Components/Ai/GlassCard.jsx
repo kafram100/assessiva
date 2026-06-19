@@ -1,5 +1,5 @@
 /**
- * Premium glass surface — matches global `.ai-glass-card` tokens.
+ * Premium glass surface - matches global `.ai-glass-card` tokens.
  */
 export default function GlassCard({
     as: Tag = 'div',

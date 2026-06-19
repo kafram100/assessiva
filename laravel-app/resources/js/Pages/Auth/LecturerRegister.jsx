@@ -120,7 +120,7 @@ export default function LecturerRegister({ schools = [], departments = [] }) {
                         <option value="">Select school…</option>
                         {schools.map((s) => (
                             <option key={s.id} value={s.id}>
-                                {s.code ? `${s.code} — ` : ''}
+                                {s.code ? `${s.code} - ` : ''}
                                 {s.name}
                             </option>
                         ))}
@@ -147,7 +147,7 @@ export default function LecturerRegister({ schools = [], departments = [] }) {
                         </option>
                         {filteredDepartments.map((d) => (
                             <option key={d.id} value={d.id}>
-                                {d.code ? `${d.code} — ` : ''}
+                                {d.code ? `${d.code} - ` : ''}
                                 {d.name}
                             </option>
                         ))}

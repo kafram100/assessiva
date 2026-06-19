@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Novagrade.ai'),
+    'name' => env('APP_NAME', 'NovaGrade'),
 
     /*
     |--------------------------------------------------------------------------

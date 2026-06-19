@@ -161,19 +161,19 @@ export default function FrequentCheaters({
                                             {c.student_index}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {c.student_fullname ?? '—'}
+                                            {c.student_fullname ?? '-'}
                                         </td>
                                         <td className="px-4 py-3 text-xs">
-                                            {c.student_level ?? '—'}
+                                            {c.student_level ?? '-'}
                                         </td>
                                         <td className="max-w-xs px-4 py-3 text-xs text-theme-dim">
-                                            {c.courses ?? '—'}
+                                            {c.courses ?? '-'}
                                         </td>
                                         <td className="px-4 py-3 text-xs">
-                                            {c.department_name ?? '—'}
+                                            {c.department_name ?? '-'}
                                         </td>
                                         <td className="px-4 py-3 text-xs">
-                                            {c.school_name ?? '—'}
+                                            {c.school_name ?? '-'}
                                         </td>
                                         <td className="px-4 py-3 text-end font-medium text-amber-200">
                                             {c.cheat_count}

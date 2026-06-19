@@ -314,7 +314,7 @@
                     showDeniedState(browserHint, statusBox, deniedGuide, retryBtn, startBtn);
                     return;
                 }
-            } catch (_) { /* Permissions API not fully supported — proceed to getUserMedia */ }
+            } catch (_) { /* Permissions API not fully supported - proceed to getUserMedia */ }
         }
 
         /* ── Request media access ── */
@@ -495,7 +495,7 @@
                         if (window.examProctoring) {
                             window.examProctoring.sendCheatEvent(eventType, metadata);
                             const labels = {
-                                no_face_detected : '⚠ No face detected — please stay in frame.',
+                                no_face_detected : '⚠ No face detected - please stay in frame.',
                                 multiple_faces   : '⚠ Multiple faces detected.',
                                 looking_away     : '⚠ Please look at the screen.',
                             };
@@ -681,7 +681,7 @@
 
         @if($questions->count() > 0)
         <div class="q-nav" id="q-nav">
-            <span class="q-nav-label"><i class="bi bi-grid-3x3-gap"></i>Questions — tap to jump</span>
+            <span class="q-nav-label"><i class="bi bi-grid-3x3-gap"></i>Questions - tap to jump</span>
             <div class="q-nav-btns">
             @foreach($questions as $i => $q)
                 @php $saved = $savedAnswers->get($q->id); $isAnswered = $saved && (!empty($saved->selected_option) || !empty($saved->theory_answer) || !empty($saved->file_upload)); @endphp

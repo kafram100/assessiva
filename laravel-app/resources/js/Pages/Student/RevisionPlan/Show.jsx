@@ -73,7 +73,7 @@ export default function Show({
                                 ))}
                                 {!(revisionPlan.weak_topics || []).length ? (
                                     <p className="text-sm text-theme-dim">
-                                        No weak topics flagged — keep practicing
+                                        No weak topics flagged - keep practicing
                                         broadly.
                                     </p>
                                 ) : null}

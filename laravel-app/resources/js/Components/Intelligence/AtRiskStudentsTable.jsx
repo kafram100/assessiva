@@ -16,10 +16,10 @@ function Row({ row, tier }) {
     return (
         <tr className="border-b border-theme-line last:border-0">
             <td className="py-2.5 pr-3 font-mono text-xs text-theme-muted">
-                {row.student_index_masked ?? '—'}
+                {row.student_index_masked ?? '-'}
             </td>
             <td className="py-2.5 pr-3 text-xs text-theme-dim">
-                {row.course ?? row.course_id ?? '—'}
+                {row.course ?? row.course_id ?? '-'}
             </td>
             <td className="py-2.5 pr-3 text-xs text-theme-muted">
                 {row.note ??
@@ -33,7 +33,7 @@ function Row({ row, tier }) {
                     ]
                         .filter(Boolean)
                         .join(' · ')) ||
-                        '—')}
+                        '-')}
             </td>
             <td className="py-2.5 text-right">
                 <RiskPill tier={tier} />

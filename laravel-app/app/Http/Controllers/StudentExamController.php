@@ -29,10 +29,7 @@ class StudentExamController extends Controller
 
     public function entryShow(Request $request)
     {
-        ExamDeviceBinding::ensureDeviceCookieQueued($request);
-        $action = $request->query('action', 'exam');
-
-        return view('student.entry', compact('action'));
+        return redirect()->route('login')->withErrors(['email' => 'Please log in to your student account to access exams.']);
     }
 
     public function entryStore(Request $request)
@@ -138,6 +135,82 @@ class StudentExamController extends Controller
             'exam_id' => $exam->id,
         ]);
         $this->queueExamResumeCookie($request, (int) $exam->id, $normalizedIndex, (string) $request->student_name, (string) $request->student_email);
+
+        return redirect()->route('student.exam');
+    }
+
+    public function joinAuthenticated(Request $request)
+    {
+        $request->validate([
+            'exam_code' => 'required|string',
+            'student_index' => 'required|string|max:50',
+        ]);
+
+        $normalizedIndex = ExamAllowedIndex::normalize($request->student_index);
+        if ($normalizedIndex === '') {
+            return back()->withErrors(['exam_code' => 'Enter a valid index number.'])->withInput();
+        }
+
+        $code = strtoupper(trim($request->exam_code));
+        $exam = Exam::where('exam_code', $code)->first();
+
+        if (! $exam || ! $exam->is_published) {
+            return back()->withErrors(['exam_code' => 'Invalid or unpublished exam code.'])->withInput();
+        }
+
+        $now = Carbon::now();
+        if ($exam->start_datetime && $now->lt($exam->start_datetime)) {
+            return back()->withErrors(['exam_code' => 'This exam has not started yet.'])->withInput();
+        }
+        if ($exam->end_datetime && $now->gt($exam->end_datetime)) {
+            return back()->withErrors(['exam_code' => 'This exam has ended.'])->withInput();
+        }
+
+        if (! $exam->hasAllowedIndexWhitelist()) {
+            return back()->withErrors(['exam_code' => 'This exam has no registered index numbers yet. Your lecturer must upload the class list before anyone can start.'])->withInput();
+        }
+        if (! $exam->isStudentIndexAllowed($normalizedIndex)) {
+            return back()->withErrors(['exam_code' => 'Your index number is not registered for this exam. Contact your lecturer if you think this is a mistake.'])->withInput();
+        }
+
+        $deviceKey = ExamDeviceBinding::currentKey($request);
+        if ($deviceKey === '') {
+            ExamDeviceBinding::ensureDeviceCookieQueued($request);
+            return back()->withErrors([
+                'exam_code' => 'Cookies are required. Try submitting again now that a device cookie has been set.',
+            ])->withInput();
+        }
+
+        $ongoing = $this->attemptsForExamStudent($exam->id, $normalizedIndex)
+            ->where('status', 'ongoing')
+            ->first();
+
+        if ($ongoing) {
+            if ($ongoing->exam_device_key && ! hash_equals($ongoing->exam_device_key, $deviceKey)) {
+                return back()->withErrors([
+                    'exam_code' => 'This exam is already active in another browser or device. Continue only there, or wait until that session ends.',
+                ])->withInput();
+            }
+            if (
+                ($ongoing->exam_device_key === null || $ongoing->exam_device_key === '')
+                && ! empty($ongoing->locked_by_session)
+                && $ongoing->locked_by_session !== session()->getId()
+            ) {
+                return back()->withErrors([
+                    'exam_code' => 'This exam is currently active in another browser. Only one session is allowed.',
+                ])->withInput();
+            }
+        }
+
+        $user = auth()->user();
+
+        session([
+            'student_index' => $normalizedIndex,
+            'student_fullname' => $user->name,
+            'student_email' => $user->email,
+            'exam_id' => $exam->id,
+        ]);
+        $this->queueExamResumeCookie($request, (int) $exam->id, $normalizedIndex, (string) $user->name, (string) $user->email);
 
         return redirect()->route('student.exam');
     }
@@ -939,7 +1012,7 @@ class StudentExamController extends Controller
 
         $start = $attempt->start_time;
         if ($start === null) {
-            // Clock not started yet (e.g. waiting on proctoring verification) — full duration remains.
+            // Clock not started yet (e.g. waiting on proctoring verification) - full duration remains.
             return max(0, (int) $exam->duration * 60);
         }
 
