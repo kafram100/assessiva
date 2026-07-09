@@ -4,69 +4,57 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
-use App\Models\Department;
-use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Demo accounts for local testing. Password for all three: {@see self::TEST_PASSWORD}.
-     */
     public const TEST_PASSWORD = 'password';
 
     public function run(): void
     {
-        $school = School::query()->firstOrCreate(
-            ['code' => 'DEMO'],
+        // Super Admin (ID 1 gets all permissions in hasPermission())
+        User::query()->updateOrCreate(
+            ['email' => 'superadmin@example.com'],
             [
-                'name' => 'Demo School of Engineering',
-                'description' => 'Seeded for local development and QA logins.',
+                'username' => 'superadmin',
+                'name' => 'Super Admin',
+                'password' => Hash::make(self::TEST_PASSWORD),
+                'role' => UserRole::Admin,
+                'status' => UserStatus::Approved,
+                'is_active' => true,
+                'approved_at' => now(),
             ],
         );
 
-        $department = Department::query()->firstOrCreate(
-            ['school_id' => $school->id, 'code' => 'CS'],
-            [
-                'name' => 'Computer Science',
-                'description' => 'Demo department for lecturer / HOD test users.',
-            ],
-        );
-
+        // Support Admin (with granular permissions)
         User::query()->updateOrCreate(
             ['email' => 'admin@example.com'],
             [
                 'username' => 'admin',
-                'name' => 'Administrator',
+                'name' => 'Support Admin',
                 'password' => Hash::make(self::TEST_PASSWORD),
                 'role' => UserRole::Admin,
                 'status' => UserStatus::Approved,
-                'department_id' => null,
-                'school_id' => null,
-                'staff_id' => null,
+                'permissions' => ['load_questions', 'delete_questions', 'edit_questions'],
                 'is_active' => true,
                 'approved_at' => now(),
             ],
         );
 
+        // Regular User (student)
         User::query()->updateOrCreate(
-            ['email' => 'lecturer@example.com'],
+            ['email' => 'user@example.com'],
             [
-                'username' => 'lecturer',
-                'name' => 'Demo Lecturer',
+                'username' => 'user',
+                'name' => 'Demo User',
                 'password' => Hash::make(self::TEST_PASSWORD),
-                'role' => UserRole::Hod,
+                'role' => UserRole::Student,
                 'status' => UserStatus::Approved,
-                'department_id' => $department->id,
-                'school_id' => $school->id,
-                'staff_id' => 'LEC-DEMO-001',
-                'phone' => '+10000000001',
                 'is_active' => true,
                 'approved_at' => now(),
             ],
         );
-
     }
 }

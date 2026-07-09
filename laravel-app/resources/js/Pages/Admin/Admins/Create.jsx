@@ -6,6 +6,7 @@ export default function Create() {
     const [showPassword, setShowPassword] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         name: '',
+        username: '',
         email: '',
         password: '',
         password_confirmation: '',
@@ -39,22 +40,23 @@ export default function Create() {
     return (
         <AdminLayout
             header={
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold leading-tight text-theme-strong">
-                        Add Restricted Admin
-                    </h2>
-                    <Link
-                        href={route('admin.admins.index')}
-                        className="text-sm font-medium text-theme-muted hover:text-theme-strong"
-                    >
-                        Back to list
-                    </Link>
-                </div>
+                <h2 className="truncate text-base font-semibold leading-tight text-theme-strong sm:text-xl">
+                    Add Restricted Admin
+                </h2>
             }
         >
             <Head title="Add Admin" />
 
-            <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
+                <Link
+                    href={route('admin.admins.index')}
+                    className="mb-4 inline-flex items-center gap-1.5 text-sm text-theme-dim hover:text-theme-strong transition-colors"
+                >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to list
+                </Link>
                 <div className="rounded-lg border border-theme-line bg-theme-elevated p-6">
                     <form onSubmit={submit} className="space-y-6">
                         <div>
@@ -67,6 +69,18 @@ export default function Create() {
                                 required
                             />
                             {errors.name && <p className="mt-1 text-sm text-rose-500">{errors.name}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-theme-strong">Username</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full rounded-md border-theme-line bg-theme-surface text-theme-strong shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                                value={data.username}
+                                onChange={(e) => setData('username', e.target.value)}
+                                required
+                            />
+                            {errors.username && <p className="mt-1 text-sm text-rose-500">{errors.username}</p>}
                         </div>
 
                         <div>

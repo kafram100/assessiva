@@ -74,6 +74,29 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
 
             <div className="py-8">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+
+                    {/* Action buttons — belong in the page, not the navbar */}
+                    <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <Link
+                            href={route('admin.question-bank-catalog.import')}
+                            className="btn-ai-secondary flex items-center justify-center gap-2"
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Import Questions
+                        </Link>
+                        <Link
+                            href={route('admin.question-bank-catalog.ai-generate')}
+                            className="btn-ai-primary flex items-center justify-center gap-2"
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            AI Generate Questions
+                        </Link>
+                    </div>
+
                     <p className="mb-6 text-sm text-ai-muted">
                         {scope === 'admin'
                             ? 'Institution-wide view of every question bank item, organized by topic on each page.'
@@ -91,7 +114,7 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                     type="search"
                                     defaultValue={filters?.search ?? ''}
                                     className="w-full rounded-lg border border-theme-line bg-ai-navy-900/80 px-3 py-2 text-sm text-theme-strong placeholder:text-ai-soft"
-                                    placeholder="Text or topic…"
+                                    placeholder="Text, topic, or course…"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             apply({
@@ -212,17 +235,70 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                         {block.items.length} on this page
                                     </span>
                                 </div>
-                                <div className="ai-table-wrap overflow-x-auto">
+                                {/* ── Mobile card view (hidden on md+) ── */}
+                                <div className="space-y-3 md:hidden">
+                                    {block.items.map((q) => (
+                                        <div key={q.id} className="rounded-xl border border-theme-line bg-theme-glass p-4 space-y-3 shadow-sm">
+                                            {/* Question */}
+                                            <div>
+                                                <span className="text-[10px] font-semibold uppercase tracking-wide text-ai-muted">Question #{q.id}</span>
+                                                <p className="mt-1 text-sm text-theme-strong leading-relaxed">{q.question_text}</p>
+                                            </div>
+
+                                            {/* Answer */}
+                                            <div className="rounded-lg bg-ai-accent/10 border border-ai-accent/20 p-3">
+                                                <span className="text-[10px] font-semibold uppercase tracking-wide text-ai-accent block mb-1">
+                                                    {q.question_type === 'mcq' ? 'Correct Answer' : 'Suggested Answer'}
+                                                </span>
+                                                {q.question_type === 'mcq' ? (
+                                                    <div>
+                                                        <span className="font-bold text-ai-accent text-sm">{q.correct_answer || '-'}</span>
+                                                        {q.options && q.correct_answer && (
+                                                            <span className="text-theme-strong text-sm ml-2">
+                                                                — {q.options.find(o => o.option_key === q.correct_answer)?.option_text || ''}
+                                                            </span>
+                                                        )}
+                                                        {/* Show all MCQ options */}
+                                                        {q.options && q.options.length > 0 && (
+                                                            <ul className="mt-2 space-y-1">
+                                                                {q.options.map(o => (
+                                                                    <li key={o.option_key} className={`text-xs flex gap-2 ${o.option_key === q.correct_answer ? 'text-ai-accent font-semibold' : 'text-ai-soft'}`}>
+                                                                        <span className="shrink-0 font-bold w-4">{o.option_key}.</span>
+                                                                        <span>{o.option_text}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm text-theme-strong leading-relaxed">{q.model_answer || q.correct_answer || '-'}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Meta row */}
+                                            <div className="flex flex-wrap gap-2 text-xs">
+                                                <span className="rounded-full bg-white/[0.06] px-2 py-1 text-ai-soft capitalize">{q.question_type?.replace('_', ' ')}</span>
+                                                <span className="rounded-full bg-white/[0.06] px-2 py-1 text-ai-soft capitalize">{q.difficulty}</span>
+                                                <span className={`rounded-full px-2 py-1 font-medium ${q.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                    {q.is_active ? 'Active' : 'Archived'}
+                                                </span>
+                                                {q.course && (
+                                                    <span className="rounded-full bg-white/[0.06] px-2 py-1 text-ai-soft">{q.course.code}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* ── Desktop table view (hidden on mobile) ── */}
+                                <div className="ai-table-wrap overflow-x-auto hidden md:block">
                                     <table className="ai-table">
                                         <thead>
                                             <tr>
                                                 <th className="ai-th">Question</th>
-                                                <th className="ai-th whitespace-nowrap">
-                                                    Type
-                                                </th>
-                                                <th className="ai-th whitespace-nowrap">
-                                                    Status
-                                                </th>
+                                                <th className="ai-th">Answer</th>
+                                                <th className="ai-th whitespace-nowrap">Type</th>
+                                                <th className="ai-th whitespace-nowrap">Status</th>
                                                 <th className="ai-th">Course</th>
                                             </tr>
                                         </thead>
@@ -230,29 +306,37 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                             {block.items.map((q) => (
                                                 <tr key={q.id} className="ai-tr">
                                                     <td className="ai-td max-w-md align-top text-theme-strong">
-                                                        <span className="text-[11px] text-ai-soft">
-                                                            #{q.id}
-                                                        </span>{' '}
-                                                        {q.question_text?.slice(
-                                                            0,
-                                                            220,
+                                                        <span className="text-[11px] text-ai-soft">#{q.id}</span>{' '}
+                                                        {q.question_text?.slice(0, 220)}
+                                                        {(q.question_text?.length || 0) > 220 ? '…' : ''}
+                                                    </td>
+                                                    <td className="ai-td max-w-sm align-top text-theme-strong text-sm">
+                                                        {q.question_type === 'mcq' ? (
+                                                            <>
+                                                                <span className="font-bold text-ai-accent">{q.correct_answer || '-'}</span>
+                                                                {q.options && q.correct_answer && (
+                                                                    <span className="text-ai-soft ml-1">
+                                                                        — {q.options.find(o => o.option_key === q.correct_answer)?.option_text || ''}
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <div>
+                                                                <span className="text-[10px] font-semibold uppercase tracking-wide text-ai-muted mb-1 block">Suggested Answer</span>
+                                                                <div className="text-ai-soft" title={q.model_answer || q.correct_answer}>
+                                                                    {q.model_answer || q.correct_answer || '-'}
+                                                                </div>
+                                                            </div>
                                                         )}
-                                                        {(q.question_text
-                                                            ?.length || 0) > 220
-                                                            ? '…'
-                                                            : ''}
                                                     </td>
                                                     <td className="ai-td whitespace-nowrap align-top text-xs text-ai-soft">
-                                                        {q.question_type} ·{' '}
-                                                        {q.difficulty}
+                                                        {q.question_type} · {q.difficulty}
                                                     </td>
                                                     <td className="ai-td whitespace-nowrap align-top text-xs uppercase text-ai-muted">
                                                         {q.is_active ? 'Active' : 'Archived'}
                                                     </td>
                                                     <td className="ai-td align-top text-xs text-ai-soft">
-                                                        {q.course
-                                                            ? `${q.course.code} - ${q.course.name}`
-                                                            : '-'}
+                                                        {q.course ? `${q.course.code} - ${q.course.name}` : '-'}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -260,6 +344,7 @@ function CatalogBody({ questions, topicOptions, filters, scope }) {
                                     </table>
                                 </div>
                             </section>
+
                         ))}
                     </div>
 
@@ -274,25 +359,9 @@ export default function Index(props) {
     const { questions, topicOptions, filters, scope } = props;
 
     const adminHeader = (
-        <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold leading-tight text-theme-strong">
-                Question bank catalog
-            </h2>
-            <div className="flex gap-2">
-                <Link
-                    href={route('admin.question-bank-catalog.import')}
-                    className="btn-ai-secondary"
-                >
-                    Import Questions
-                </Link>
-                <Link
-                    href={route('admin.question-bank-catalog.ai-generate')}
-                    className="btn-ai-primary"
-                >
-                    AI Generate
-                </Link>
-            </div>
-        </div>
+        <h2 className="truncate text-base font-semibold leading-tight text-theme-strong sm:text-xl">
+            Question bank catalog
+        </h2>
     );
 
     const body = (

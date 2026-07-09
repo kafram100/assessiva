@@ -19,6 +19,7 @@ class UserPracticeSession extends Model
     protected function casts(): array
     {
         return [
+            'user_id' => 'integer',
             'questions' => 'array',
             'responses' => 'array',
             'ai_feedback' => 'array',

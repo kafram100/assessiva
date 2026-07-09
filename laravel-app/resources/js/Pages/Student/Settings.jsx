@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import PracticeHubLayout from '@/Layouts/PracticeHubLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, Link } from '@inertiajs/react';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -12,6 +12,7 @@ export default function Settings({ user }) {
 
     const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
         name: user.name || '',
+        educational_level: user.educational_level || '',
         level: user.level || '',
         profile_picture: null,
         current_password: '',
@@ -44,6 +45,18 @@ export default function Settings({ user }) {
             <Head title="Settings" />
 
             <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                <div className="mb-6">
+                    <Link
+                        href={route('practice-quizzes.index')}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-theme-dim hover:text-sky-500 transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Practice Hub
+                    </Link>
+                </div>
+
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-theme-content">Account Settings</h1>
                     <p className="text-theme-dim mt-1 text-sm">Update your profile information and password.</p>
@@ -121,6 +134,22 @@ export default function Settings({ user }) {
                                 </div>
 
                                 <div>
+                                    <InputLabel htmlFor="educational_level" value="Educational Level" />
+                                    <select
+                                        id="educational_level"
+                                        className="mt-1 block w-full border-theme-line bg-theme-elevated text-theme-content focus:border-sky-500 focus:ring-sky-500 rounded-md shadow-sm sm:text-sm"
+                                        value={data.educational_level}
+                                        onChange={(e) => setData({...data, educational_level: e.target.value, level: ''})}
+                                    >
+                                        <option value="">Select Educational Level</option>
+                                        <option value="JHS">JHS</option>
+                                        <option value="SHS">SHS</option>
+                                        <option value="Tertiary">Tertiary</option>
+                                    </select>
+                                    <InputError className="mt-2" message={errors.educational_level} />
+                                </div>
+
+                                <div>
                                     <InputLabel htmlFor="level" value="Current Level (Optional)" />
                                     <select
                                         id="level"
@@ -129,11 +158,29 @@ export default function Settings({ user }) {
                                         onChange={(e) => setData('level', e.target.value)}
                                     >
                                         <option value="">Select Level</option>
-                                        <option value="100">Level 100</option>
-                                        <option value="200">Level 200</option>
-                                        <option value="300">Level 300</option>
-                                        <option value="400">Level 400</option>
-                                        <option value="Graduate">Graduate</option>
+                                        {data.educational_level === 'JHS' && (
+                                            <>
+                                                <option value="JHS 1">JHS 1</option>
+                                                <option value="JHS 2">JHS 2</option>
+                                                <option value="JHS 3">JHS 3</option>
+                                            </>
+                                        )}
+                                        {data.educational_level === 'SHS' && (
+                                            <>
+                                                <option value="SHS 1">SHS 1</option>
+                                                <option value="SHS 2">SHS 2</option>
+                                                <option value="SHS 3">SHS 3</option>
+                                            </>
+                                        )}
+                                        {(!data.educational_level || data.educational_level === 'Tertiary') && (
+                                            <>
+                                                <option value="100">Level 100</option>
+                                                <option value="200">Level 200</option>
+                                                <option value="300">Level 300</option>
+                                                <option value="400">Level 400</option>
+                                                <option value="Graduate">Graduate</option>
+                                            </>
+                                        )}
                                     </select>
                                     <InputError className="mt-2" message={errors.level} />
                                 </div>

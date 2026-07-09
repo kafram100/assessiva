@@ -145,9 +145,7 @@ class StudentPracticeController extends Controller
         ]);
 
         if ($request->wantsJson()) {
-            $dbQuestions = QuestionBank::whereIn('id', $session->questions)->with('options')->get()->sortBy(function($q) use ($session) {
-                return array_search($q->id, $session->questions);
-            })->values();
+            $dbQuestions = QuestionBank::whereIn('id', $session->questions)->with('options')->get()->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values();
             
             $formattedQuestions = $dbQuestions->map(function ($q) {
                 return [
@@ -179,7 +177,7 @@ class StudentPracticeController extends Controller
         }
 
         $questions = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
-            ->sortBy(function($q) use ($session) { return array_search($q->id, $session->questions); })->values()
+            ->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
             ->map(function ($q) {
             return [
                 'id' => $q->id,
@@ -241,7 +239,7 @@ class StudentPracticeController extends Controller
 
         $responses = $validated['responses'] ?? [];
         $questions = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
-            ->sortBy(function($q) use ($session) { return array_search($q->id, $session->questions); })->values();
+            ->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values();
 
         $graded = $this->gradeWithAiSynchronously($questions, $responses);
 
@@ -253,7 +251,7 @@ class StudentPracticeController extends Controller
 
         if ($request->wantsJson()) {
             $questionsForResults = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
-                ->sortBy(function($q) use ($session) { return array_search($q->id, $session->questions); })->values()
+                ->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
                 ->map(function($q) {
                 $q->correct_option = $q->correct_answer;
                 return $q;
@@ -303,10 +301,10 @@ class StudentPracticeController extends Controller
 
         $prompt = "You are an AI tutor marking a practice quiz. Evaluate the following questions.\n";
         $prompt .= "For MCQs: The student answer is given. Explain why the correct option is right, and why the student's chosen option is wrong (if they got it wrong). If they got it right, praise them and explain why it's right.\n";
-        $prompt .= "For Theory/Fill-in: Be forgiving of minor typos, capitalization, or missing hyphens. Award partial or full credit if the meaning is close to the correct answer. Provide constructive feedback.\n";
+        $prompt .= "For Theory/Fill-in: Be extremely forgiving. If the student has the general idea or demonstrates partial understanding, DO NOT mark them entirely wrong. Award partial credit (e.g. set 'marks' to a decimal like 0.5 or 0.8) instead of 0, and provide constructive feedback on what they missed.\n";
         $prompt .= "CRITICAL: Explain the answer very well for easy understanding, but keep your feedback concise. Your feedback MUST NOT exceed 4 sentences in length.\n";
         $prompt .= "Return ONLY a JSON array, exactly in the order provided, matching this structure:\n";
-        $prompt .= "[\n  {\n    \"id\": 123,\n    \"is_correct\": true,\n    \"marks\": 1,\n    \"feedback\": \"Your explanation...\"\n  }\n]\n\n";
+        $prompt .= "[\n  {\n    \"id\": 123,\n    \"is_correct\": true,\n    \"marks\": 0.5,\n    \"feedback\": \"Your explanation...\"\n  }\n]\n\n";
         $prompt .= "Here is the data:\n" . json_encode($promptData);
 
         try {
@@ -366,7 +364,7 @@ class StudentPracticeController extends Controller
         }
 
         $questions = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
-            ->sortBy(function($q) use ($session) { return array_search($q->id, $session->questions); })->values()
+            ->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
             ->map(function($q) {
             $q->correct_option = $q->correct_answer;
             return $q;

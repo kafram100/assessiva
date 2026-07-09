@@ -122,7 +122,7 @@ export default function Dashboard({
     return (
         <AdminLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-theme-strong">
+                <h2 className="truncate text-base font-semibold leading-tight text-theme-strong sm:text-xl">
                     Platform Overview
                 </h2>
             }
@@ -130,7 +130,7 @@ export default function Dashboard({
             <Head title="Admin Dashboard" />
 
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="mb-4 grid grid-cols-1 sm:grid-cols- gap-3 md:grid-cols-4">
+                <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
                     {canManageStudents && <StatCard label="Registered Users" value={studentCount} tone="sky" />}
                     {canManageQuestions && <StatCard label="AI Questions" value={questionCount} tone="violet" />}
                     {canManageStudents && <StatCard label="Practice Sessions" value={attemptCount} tone="emerald" />}
@@ -138,7 +138,7 @@ export default function Dashboard({
                 </div>
 
                 {canManageBilling && (
-                    <div className="mb-8 grid grid-cols-1 sm:grid-cols- gap-3 md:grid-cols-4">
+                    <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
                         <RevenueCard label="Daily Revenue" current={revenue.daily.current} history={revenue.daily.history} tone="emerald" />
                         <RevenueCard label="Weekly Revenue" current={revenue.weekly.current} history={revenue.weekly.history} tone="emerald" />
                         <RevenueCard label="Monthly Revenue" current={revenue.monthly.current} history={revenue.monthly.history} tone="emerald" />

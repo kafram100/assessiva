@@ -6,5 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'reference',
+        'amount',
+        'tokens',
+        'gateway',
+        'status',
+    ];
 }

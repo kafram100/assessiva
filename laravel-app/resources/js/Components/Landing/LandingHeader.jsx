@@ -1,8 +1,10 @@
 import ThemeToggle from '@/Components/ThemeToggle';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 
 export default function LandingHeader() {
+    const { auth } = usePage().props;
+
     return (
         <motion.header
             initial={{ y: -16, opacity: 0 }}
@@ -21,7 +23,7 @@ export default function LandingHeader() {
                         <div className="font-display text-sm font-semibold tracking-tight text-theme-strong">
                             NovaGrade
                         </div>
-                        <div className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-theme-dim">
+                        <div className="hidden sm:block text-[0.65rem] font-medium uppercase tracking-[0.2em] text-theme-dim">
                             Smart Exam Prep
                         </div>
                     </div>
@@ -29,12 +31,29 @@ export default function LandingHeader() {
                 <nav className="flex items-center gap-2 sm:gap-3">
 
                     <ThemeToggle />
-                    <Link
-                        href={route('login')}
-                        className="rounded-full px-3 py-1.5 text-xs font-medium text-theme-muted transition hover:text-theme-strong sm:text-sm"
-                    >
-                        Sign in
-                    </Link>
+                    {auth.user ? (
+                        <Link
+                            href={route('dashboard')}
+                            className="rounded-full px-4 py-1.5 text-xs font-semibold text-theme-strong transition hover:bg-theme-elevated border border-theme-line sm:text-sm"
+                        >
+                            Dashboard
+                        </Link>
+                    ) : (
+                        <>
+                            <Link
+                                href={route('login')}
+                                className="rounded-full px-3 py-1.5 text-xs font-medium text-theme-muted transition hover:text-theme-strong sm:text-sm"
+                            >
+                                Sign In
+                            </Link>
+                            <Link
+                                href={route('register')}
+                                className="rounded-full bg-ai-accent/10 px-4 py-1.5 text-xs font-semibold text-ai-accent transition hover:bg-ai-accent/20 sm:text-sm"
+                            >
+                                Register
+                            </Link>
+                        </>
+                    )}
                 </nav>
             </div>
         </motion.header>

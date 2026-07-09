@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import Modal from '@/Components/Modal';
+import SecondaryButton from '@/Components/SecondaryButton';
+import PrimaryButton from '@/Components/PrimaryButton';
 
 export default function QuizPlayer({ practiceSession, questions, onSubmit, processing }) {
     const [data, setData] = useState({ responses: {} });
@@ -13,8 +16,14 @@ export default function QuizPlayer({ practiceSession, questions, onSubmit, proce
         }));
     };
 
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
+
     const submitPractice = () => {
-        if (!confirm('Submit your practice session?')) return;
+        setShowSubmitModal(true);
+    };
+
+    const confirmSubmit = () => {
+        setShowSubmitModal(false);
         onSubmit(data.responses);
     };
 
@@ -156,6 +165,25 @@ export default function QuizPlayer({ practiceSession, questions, onSubmit, proce
                     );
                 })}
             </div>
+
+            <Modal show={showSubmitModal} onClose={() => setShowSubmitModal(false)}>
+                <div className="p-6">
+                    <h2 className="text-lg font-medium text-theme-strong">
+                        Submit Practice Session?
+                    </h2>
+                    <p className="mt-1 text-sm text-theme-dim">
+                        Are you sure you want to submit your responses? You won't be able to change them afterwards.
+                    </p>
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton onClick={() => setShowSubmitModal(false)}>
+                            Cancel
+                        </SecondaryButton>
+                        <PrimaryButton onClick={confirmSubmit} disabled={processing}>
+                            {processing ? 'Submitting...' : 'Yes, Submit'}
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

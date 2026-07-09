@@ -9,11 +9,8 @@
                 try {
                     var k = 'ai-theme';
                     var stored = localStorage.getItem(k);
-                    var dark =
-                        stored === 'dark' ||
-                        (stored !== 'light' &&
-                            window.matchMedia('(prefers-color-scheme: dark)').matches);
-                    if (dark) {
+                    // Default is LIGHT. Only enable dark if user explicitly chose it.
+                    if (stored === 'dark') {
                         document.documentElement.classList.add('dark');
                     } else {
                         document.documentElement.classList.remove('dark');

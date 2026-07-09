@@ -42,13 +42,18 @@ class QuestionBankCatalogController extends Controller
                 'lecturer:id,name,username',
                 'department:id,name',
                 'course:id,code,name',
+                'options',
             ]);
 
         if ($request->filled('search')) {
             $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) $request->input('search'))).'%';
             $query->where(function (Builder $q) use ($term): void {
                 $q->where('question_text', 'like', $term)
-                    ->orWhere('topic', 'like', $term);
+                    ->orWhere('topic', 'like', $term)
+                    ->orWhereHas('course', function (Builder $cq) use ($term) {
+                        $cq->where('name', 'like', $term)
+                           ->orWhere('code', 'like', $term);
+                    });
             });
         }
 
@@ -106,6 +111,28 @@ class QuestionBankCatalogController extends Controller
         return $query;
     }
 
+    public function downloadTemplate()
+    {
+        $csvHeader = ['Question Type', 'Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Option E', 'Correct Answer', 'Suggested Marks'];
+        $exampleRow1 = ['mcq', 'Which service is used for email?', 'Gmail', 'Excel', 'Paint', 'Calculator', '', 'A', '1'];
+        $exampleRow2 = ['theory', 'Explain the process of photosynthesis.', '', '', '', '', '', 'Plants convert sunlight into energy...', '5'];
+
+        $callback = function () use ($csvHeader, $exampleRow1, $exampleRow2) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $csvHeader);
+            fputcsv($file, $exampleRow1);
+            fputcsv($file, $exampleRow2);
+            fclose($file);
+        };
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="question_import_template.csv"',
+        ];
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function importForm(Request $request): Response
     {
         $courses = \App\Models\Course::query()
@@ -122,7 +149,8 @@ class QuestionBankCatalogController extends Controller
     {
         $request->validate([
             'course_name' => 'required|string|max:255',
-            'level' => 'required|in:Year 1,Year 2,Year 3,Year 4',
+            'level' => ['required', 'string', 'in:JHS 1,JHS 2,JHS 3,SHS 1,SHS 2,SHS 3,Level 100,Level 200,Level 300,Level 400,Graduate,Year 1,Year 2,Year 3,Year 4'],
+            'topic' => 'nullable|string|max:255',
             'csv_file' => 'required|file|mimes:csv,txt|max:5120',
         ]);
 
@@ -142,6 +170,7 @@ class QuestionBankCatalogController extends Controller
 
         fgetcsv($handle, 0, $delimiter);
         $imported = 0;
+        $skipped = 0;
         $user = $request->user();
 
         $courseName = trim((string) $request->input('course_name'));
@@ -191,9 +220,21 @@ class QuestionBankCatalogController extends Controller
             }
             $normalizedCorrect = $normalizedCorrect !== '' ? $normalizedCorrect : null;
 
+            // Deduplication check
+            $existing = QuestionBank::where('course_id', $course->id)
+                ->where('question_text', trim((string) $questionText))
+                ->first();
+
+            if ($existing) {
+                \Illuminate\Support\Facades\Log::info('CSV Import Skipped: Duplicate question', ['question' => $questionText]);
+                $skipped++;
+                continue;
+            }
+
             $question = QuestionBank::create([
                 'course_id' => $course->id,
                 'level' => $request->input('level'),
+                'topic' => $request->filled('topic') ? trim((string) $request->input('topic')) : null,
                 'lecturer_id' => $user->id,
                 'department_id' => $user->department_id,
                 'question_text' => trim((string) $questionText),
@@ -231,8 +272,13 @@ class QuestionBankCatalogController extends Controller
 
         fclose($handle);
 
+        $msg = "{$imported} question(s) imported to the Question Bank successfully.";
+        if ($skipped > 0) {
+            $msg .= " {$skipped} duplicate(s) were skipped.";
+        }
+
         return redirect()->route('admin.question-bank-catalog.index')
-            ->with('success', "{$imported} question(s) imported to the Question Bank successfully.");
+            ->with('success', $msg);
     }
 
     public function aiGenerateForm(Request $request): Response
@@ -251,13 +297,14 @@ class QuestionBankCatalogController extends Controller
     {
         $request->validate([
             'course_name' => 'required|string|max:150',
-            'level' => 'required|in:Year 1,Year 2,Year 3,Year 4',
+            'educational_level' => 'nullable|in:JHS,SHS,Tertiary',
+            'level' => ['required', 'string', 'in:JHS 1,JHS 2,JHS 3,SHS 1,SHS 2,SHS 3,Level 100,Level 200,Level 300,Level 400,Graduate,Year 1,Year 2,Year 3,Year 4'],
             'topic' => 'nullable|string|max:150',
             'lecture_content' => 'nullable|string|max:500000',
             'input_file' => 'nullable|file|mimes:txt,pdf,doc,docx,ppt,pptx|max:8192',
-            'question_count' => 'required|integer|min:1|max:100000',
+            'question_count' => 'required|integer|min:1|max:50',
             'question_types' => 'required|array|min:1',
-            'question_types.*' => 'required|in:mcq,theory,fill_in,true_false',
+            'question_types.*' => 'required|in:mcq,theory,fill_in,true_false,short_answer',
         ]);
 
         $sourceContent = trim((string) ($request->input('lecture_content') ?? ''));
@@ -299,10 +346,10 @@ class QuestionBankCatalogController extends Controller
             'input_type' => $inputType,
             'source_file_path' => $sourceFilePath,
             'source_content' => $sourceContent,
-            'requested_question_count' => (int) $request->input('number_of_questions'),
+            'requested_question_count' => (int) $request->input('question_count'),
             'question_types' => $request->input('question_types'),
             'difficulty' => 'mixed',
-            'total_marks' => (int) $request->input('number_of_questions'),
+            'total_marks' => (int) $request->input('question_count'),
             'parameters' => array_merge($request->only(['topic', 'level']), ['course_id' => $course->id]),
             'status' => 'pending',
         ]);
@@ -310,10 +357,10 @@ class QuestionBankCatalogController extends Controller
         try {
             $generationResult = $aiService->generateQuestionsWithMetadata(
                 $sourceContent,
-                (int) $request->input('number_of_questions'),
+                (int) $request->input('question_count'),
                 (array) $request->input('question_types'),
                 'mixed',
-                (int) $request->input('number_of_questions'),
+                (int) $request->input('question_count'),
                 $request->input('topic') ?? null,
                 'General Knowledge',
                 null
@@ -335,7 +382,22 @@ class QuestionBankCatalogController extends Controller
                 'completed_at' => now(),
             ]);
 
+            $generatedCount = 0;
+            $skippedCount = 0;
+
             foreach ($questions as $q) {
+                $qText = trim((string) $q['question_text']);
+
+                // Deduplication check
+                $existing = QuestionBank::where('course_id', $course->id)
+                    ->where('question_text', $qText)
+                    ->first();
+
+                if ($existing) {
+                    $skippedCount++;
+                    continue;
+                }
+
                 $questionBank = QuestionBank::create([
                     'course_id' => $course->id,
                     'level' => $request->input('level'),
@@ -365,10 +427,17 @@ class QuestionBankCatalogController extends Controller
                         ]);
                     }
                 }
+                
+                $generatedCount++;
+            }
+
+            $msg = "{$generatedCount} question(s) generated and added to the official catalog.";
+            if ($skippedCount > 0) {
+                $msg .= " {$skippedCount} duplicate(s) were skipped.";
             }
 
             return redirect()->route('admin.question-bank-catalog.index')
-                ->with('success', count($questions).' question(s) generated and added to the official catalog.');
+                ->with('success', $msg);
 
         } catch (\Exception $e) {
             $aiRequest->update([

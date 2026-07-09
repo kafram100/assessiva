@@ -31,7 +31,7 @@ export default function Modal({
             <Dialog
                 as="div"
                 id="modal"
-                className="modal-overlay fixed inset-0 z-[1100] flex transform items-center overflow-y-auto px-4 py-6 transition-all sm:px-0"
+                className="relative z-[1100]"
                 onClose={close}
             >
                 <TransitionChild
@@ -42,23 +42,27 @@ export default function Modal({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/70" />
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/70" />
                 </TransitionChild>
 
-                <TransitionChild
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enterTo="opacity-100 translate-y-0 sm:scale-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                >
-                    <DialogPanel
-                        className={`modal-panel relative z-[1101] mb-6 transform overflow-hidden rounded-lg border border-[color:var(--modal-panel-border)] bg-[color:var(--modal-panel-bg)] text-slate-900 shadow-[var(--modal-shadow)] transition-all dark:border-white/10 dark:bg-slate-950/95 dark:text-slate-100 sm:mx-auto w-full ${maxWidthClass}`}
-                    >
-                        {children}
-                    </DialogPanel>
-                </TransitionChild>
+                <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                        <TransitionChild
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            enterTo="opacity-100 translate-y-0 sm:scale-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        >
+                            <DialogPanel
+                                className={`modal-panel relative transform overflow-hidden rounded-lg text-left border border-[color:var(--modal-panel-border)] bg-[color:var(--modal-panel-bg)] text-slate-900 shadow-[var(--modal-shadow)] transition-all dark:border-white/10 dark:bg-slate-950/95 dark:text-slate-100 sm:my-8 sm:w-full sm:max-w-lg ${maxWidthClass} w-full`}
+                            >
+                                {children}
+                            </DialogPanel>
+                        </TransitionChild>
+                    </div>
+                </div>
             </Dialog>
         </Transition>
     );

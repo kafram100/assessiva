@@ -19,8 +19,19 @@ class EnsureRole
             abort(403);
         }
 
-        $allowed = array_map(static fn (string $r) => strtolower(trim($r)), $roles);
+        $allowed = [];
+        foreach ($roles as $roleGroup) {
+            foreach (explode(',', $roleGroup) as $role) {
+                $allowed[] = strtolower(trim($role));
+            }
+        }
+
         if (! in_array($user->role->value, $allowed, true)) {
+            \Illuminate\Support\Facades\Log::error('EnsureRole 403', [
+                'user_role' => $user->role->value,
+                'allowed' => $allowed,
+                'roles_raw' => func_get_args(),
+            ]);
             abort(403, 'You do not have permission for this action.');
         }
 

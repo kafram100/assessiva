@@ -79,6 +79,7 @@ class AiQuestionGenerationService
         ?string $courseLabel = null,
         ?string $learningOutcome = null,
     ): array {
+        set_time_limit(env('AI_GENERATION_SYNC_MAX_EXECUTION', 600));
         $clean = $this->sanitizeLectureContent($lectureContent);
         if ($clean === '') {
             return [
@@ -445,40 +446,55 @@ class AiQuestionGenerationService
         }
 
         $model = (string) $this->cfg('ai_generation.openai_model', env('OPENAI_GENERATION_MODEL', 'gpt-4o-mini'));
-        $timeout = (int) $this->cfg('ai_generation.timeout', 60);
-        $prompt = $this->buildGenerationPrompt($lectureContent, $count, $questionTypes, $difficulty, $totalMarks, $topic);
+        $timeout = (int) config('services.ai.timeout', 120);
 
-        $response = Http::withToken($key)
-            ->timeout($timeout)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => $model,
-                'temperature' => 0.35,
-                'messages' => [
-                    ['role' => 'system', 'content' => $this->systemPrompt()],
-                    ['role' => 'user', 'content' => $prompt],
-                ],
-                'response_format' => ['type' => 'json_object'],
-            ]);
+        // Batch into chunks of 15 to stay within LLM token limits
+        $batchSize = 15;
+        $merged = [];
+        $offset = 0;
 
-        if (! $response->successful()) {
-            Log::warning('OpenAI generation API error', ['status' => $response->status(), 'body' => $response->body()]);
+        while ($offset < $count) {
+            $batch = min($batchSize, $count - $offset);
+            $prompt = $this->buildGenerationPrompt($lectureContent, $batch, $questionTypes, $difficulty, $totalMarks, $topic);
 
-            return null;
+            $response = Http::withToken($key)
+                ->timeout($timeout)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => $model,
+                    'temperature' => 0.35,
+                    'messages' => [
+                        ['role' => 'system', 'content' => $this->systemPrompt()],
+                        ['role' => 'user', 'content' => $prompt],
+                    ],
+                    'response_format' => ['type' => 'json_object'],
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('OpenAI generation API error', ['status' => $response->status(), 'body' => $response->body()]);
+                break;
+            }
+
+            $content = (string) data_get($response->json(), 'choices.0.message.content', '');
+            $decoded = $this->decodeJson($content);
+            if ($decoded === null) {
+                break;
+            }
+
+            $batchQuestions = $this->normalizeQuestionsFromLlm($decoded, $batch, $difficulty, $topic, $totalMarks);
+            if ($batchQuestions === []) {
+                break;
+            }
+
+            $merged = array_merge($merged, $batchQuestions);
+            $offset += $batch;
         }
 
-        $content = (string) data_get($response->json(), 'choices.0.message.content', '');
-        $decoded = $this->decodeJson($content);
-        if ($decoded === null) {
-            return null;
-        }
-
-        $questions = $this->normalizeQuestionsFromLlm($decoded, $count, $difficulty, $topic, $totalMarks);
-        if ($questions === []) {
+        if ($merged === []) {
             return null;
         }
 
         return [
-            'questions' => $questions,
+            'questions' => $merged,
             'provider' => 'openai',
             'model' => $model,
             'used_fallback' => false,
@@ -504,39 +520,54 @@ class AiQuestionGenerationService
         }
 
         $model = (string) $this->cfg('ai_generation.gemini_model', env('GEMINI_GENERATION_MODEL', 'gemini-2.0-flash'));
-        $timeout = (int) $this->cfg('ai_generation.timeout', 60);
-        $prompt = $this->buildGenerationPrompt($lectureContent, $count, $questionTypes, $difficulty, $totalMarks, $topic);
+        $timeout = (int) config('services.ai.timeout', 120);
 
-        $response = Http::timeout($timeout)
-            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key), [
-                'contents' => [
-                    ['role' => 'user', 'parts' => [['text' => $this->systemPrompt()."\n\n".$prompt]]],
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.35,
-                    'maxOutputTokens' => 4096,
-                ],
-            ]);
+        // Batch into chunks of 15 to stay within LLM token limits
+        $batchSize = 15;
+        $merged = [];
+        $offset = 0;
 
-        if (! $response->successful()) {
-            Log::warning('Gemini generation API error', ['status' => $response->status(), 'body' => $response->body()]);
+        while ($offset < $count) {
+            $batch = min($batchSize, $count - $offset);
+            $prompt = $this->buildGenerationPrompt($lectureContent, $batch, $questionTypes, $difficulty, $totalMarks, $topic);
 
-            return null;
+            $response = Http::timeout($timeout)
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key), [
+                    'contents' => [
+                        ['role' => 'user', 'parts' => [['text' => $this->systemPrompt()."\n\n".$prompt]]],
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.35,
+                        'maxOutputTokens' => 8192,
+                    ],
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('Gemini generation API error', ['status' => $response->status(), 'body' => $response->body()]);
+                break;
+            }
+
+            $content = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
+            $decoded = $this->decodeJson($content);
+            if ($decoded === null) {
+                break;
+            }
+
+            $batchQuestions = $this->normalizeQuestionsFromLlm($decoded, $batch, $difficulty, $topic, $totalMarks);
+            if ($batchQuestions === []) {
+                break;
+            }
+
+            $merged = array_merge($merged, $batchQuestions);
+            $offset += $batch;
         }
 
-        $content = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
-        $decoded = $this->decodeJson($content);
-        if ($decoded === null) {
-            return null;
-        }
-
-        $questions = $this->normalizeQuestionsFromLlm($decoded, $count, $difficulty, $topic, $totalMarks);
-        if ($questions === []) {
+        if ($merged === []) {
             return null;
         }
 
         return [
-            'questions' => $questions,
+            'questions' => $merged,
             'provider' => 'gemini',
             'model' => $model,
             'used_fallback' => false,
@@ -599,6 +630,7 @@ JSON;
             ."Difficulty: {$difficulty}\n"
             ."Total marks target: {$totalMarks}\n"
             ."Requirements:\n"
+            ."- CRITICAL: The questions MUST accurately reflect the {$difficulty} difficulty level.\n"
             ."- Questions must be meaningful, concise, and test understanding.\n"
             ."- Do NOT copy long raw lecture text as question or answer.\n"
             ."- For MCQ include 4 options and exactly one correct option.\n"

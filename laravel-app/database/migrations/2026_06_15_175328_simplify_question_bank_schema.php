@@ -14,6 +14,12 @@ return new class extends Migration
         Schema::dropIfExists('official_question_reviews');
 
         Schema::table('question_bank', function (Blueprint $table) {
+            if (Schema::hasColumn('question_bank', 'approved_by')) {
+                $table->dropForeign(['approved_by']);
+            }
+            if (Schema::hasColumn('question_bank', 'official_approved_by')) {
+                $table->dropForeign(['official_approved_by']);
+            }
             $table->dropColumn([
                 'status',
                 'visibility',

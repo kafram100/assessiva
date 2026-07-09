@@ -705,16 +705,24 @@ export default function LecturerLayout({ header, children }) {
                 </nav>
 
                 <div className="flex shrink-0 items-center gap-2.5 border-t border-theme-line px-4 py-3.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-sm font-bold text-white shadow-sm">
-                        {(user?.username ?? '?').slice(0, 1).toUpperCase()}
-                    </div>
+                    {user?.profile_picture_url ? (
+                        <img
+                            src={user.profile_picture_url}
+                            alt={user?.name}
+                            className="h-9 w-9 shrink-0 aspect-square rounded-full object-cover shadow-sm"
+                        />
+                    ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-sm font-bold text-white shadow-sm">
+                            {(user?.name ?? '?').slice(0, 1).toUpperCase()}
+                        </div>
+                    )}
                     <div
                         className={`min-w-0 flex-1 overflow-hidden ${
                             effectiveCollapsed ? 'sr-only' : ''
                         }`}
                     >
                         <div className="truncate text-sm font-semibold text-theme-strong">
-                            {user?.username}
+                            {user?.name}
                         </div>
                         <div className="text-[0.72rem] text-theme-dim">
                             {roleLabel(user?.role)}

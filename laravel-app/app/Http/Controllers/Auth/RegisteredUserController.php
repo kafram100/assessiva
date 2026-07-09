@@ -28,9 +28,10 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/', 'not_regex:/super\s*admin/i'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'phone' => ['required', 'string', 'regex:/^0[0-9]{9}$/', 'unique:'.User::class],
+            'educational_level' => ['required', 'string', 'in:JHS,SHS,Tertiary'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
@@ -40,6 +41,7 @@ class RegisteredUserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
+            'educational_level' => $validated['educational_level'],
         ]);
         $user->password = Hash::make($validated['password']);
         $user->role = UserRole::Student;

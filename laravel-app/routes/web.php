@@ -51,7 +51,7 @@ Route::middleware('student_result_verified')->group(function () {
 
 Route::middleware('auth')->prefix('student')->name('student.')->group(function () {
     Route::get('/wallet', [StudentController::class, 'wallet'])->name('wallet');
-    Route::post('/wallet/topup/initialize', [StudentController::class, 'initializePayment'])->name('wallet.topup.initialize');
+    Route::post('/wallet/topup/initialize', [StudentController::class, 'initializePayment'])->middleware('throttle:10,1')->name('wallet.topup.initialize');
     Route::get('/wallet/topup/callback', [StudentController::class, 'paymentCallback'])->name('wallet.topup.callback');
     Route::post('/wallet/topup/verify', [StudentController::class, 'verifyPayment'])->name('wallet.topup.verify');
     Route::get('/settings', [StudentController::class, 'settings'])->name('settings');
@@ -157,8 +157,9 @@ Route::middleware(['auth', 'approved_staff', 'role:admin,hod'])->prefix('admin')
     Route::get('/question-bank-catalog', [QuestionBankCatalogController::class, 'index'])->name('question-bank-catalog.index');
     Route::get('/question-bank-catalog/import', [QuestionBankCatalogController::class, 'importForm'])->name('question-bank-catalog.import');
     Route::post('/question-bank-catalog/import', [QuestionBankCatalogController::class, 'importStore'])->name('question-bank-catalog.import.store');
+    Route::get('/question-bank-catalog/import/template', [QuestionBankCatalogController::class, 'downloadTemplate'])->name('question-bank-catalog.import.template');
     Route::get('/question-bank-catalog/ai-generate', [QuestionBankCatalogController::class, 'aiGenerateForm'])->name('question-bank-catalog.ai-generate');
-    Route::post('/question-bank-catalog/ai-generate', [QuestionBankCatalogController::class, 'aiGenerateStore'])->name('question-bank-catalog.ai-generate.store');
+    Route::post('/question-bank-catalog/ai-generate', [QuestionBankCatalogController::class, 'aiGenerateStore'])->middleware('throttle:10,1')->name('question-bank-catalog.ai-generate.store');
 });
 
 

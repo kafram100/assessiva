@@ -18,27 +18,13 @@ export default function HeroSection() {
     return (
         <section className="relative z-10 px-4 pb-24 pt-28 sm:px-6 lg:px-8 lg:pb-32 lg:pt-32">
             <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-8">
-                <div>
-                    <motion.div
-                        custom={0}
-                        variants={fadeUp}
-                        initial="hidden"
-                        animate="show"
-                        className="mb-6 inline-flex items-center gap-2 rounded-full border border-ai-accent/25 bg-theme-highlight px-3 py-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ai-accent backdrop-blur-md"
-                    >
-                        <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ai-accent opacity-60" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-ai-accent" />
-                        </span>
-                        Live intelligence layer
-                    </motion.div>
-
+                <div className="text-center lg:text-left">
                     <motion.h1
                         custom={1}
                         variants={fadeUp}
                         initial="hidden"
                         animate="show"
-                        className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-theme-strong sm:text-5xl lg:text-[3.25rem] xl:text-6xl"
+                        className="font-display text-3xl font-bold leading-[1.08] tracking-tight text-theme-strong sm:text-5xl lg:text-[3.25rem] xl:text-6xl"
                     >
                         Stop Guessing, <span className="ai-text-gradient">Start Acing</span>
                     </motion.h1>
@@ -48,7 +34,7 @@ export default function HeroSection() {
                         variants={fadeUp}
                         initial="hidden"
                         animate="show"
-                        className="mt-6 max-w-xl text-base leading-relaxed text-theme-muted sm:text-lg"
+                        className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-theme-muted sm:text-lg lg:mx-0"
                     >
                         Never walk into an exam unprepared again. NovaGrade analyzes your knowledge, tests you with real questions, and explains exactly how to improve.
                     </motion.p>
@@ -58,7 +44,7 @@ export default function HeroSection() {
                         variants={fadeUp}
                         initial="hidden"
                         animate="show"
-                        className="mt-10 flex flex-wrap items-center gap-4"
+                        className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start"
                     >
                         <Link
                             href={auth.user ? route('practice-quizzes.index') : route('register')}
@@ -66,37 +52,9 @@ export default function HeroSection() {
                         >
                             <span className="absolute inset-0 bg-gradient-to-r from-ai-accent via-ai-accent-deep to-ai-accent opacity-90 transition group-hover:opacity-100" />
                             <span className="absolute inset-0 bg-ai-glow opacity-0 blur-xl transition group-hover:opacity-40" />
-                            <span className="relative">Test Your Knowledge</span>
+                            <span className="relative">Start Practicing</span>
                         </Link>
-                        <a
-                            href="#how-it-works"
-                            className="inline-flex items-center justify-center rounded-full border border-theme-line bg-theme-highlight px-4 sm:px-8 py-3.5 text-sm font-semibold text-theme-muted no-underline backdrop-blur-md transition hover:border-ai-accent/50 hover:text-theme-strong"
-                        >
-                            See How It Works
-                        </a>
                     </motion.div>
-
-                    <motion.dl
-                        custom={4}
-                        variants={fadeUp}
-                        initial="hidden"
-                        animate="show"
-                        className="mt-14 grid grid-cols-1 sm:grid-cols- gap-6 sm:grid-cols-3"
-                    >
-                        {[
-                            ['Curated Exams', 'Randomized 20-question sets'],
-                            ['AI Feedback', 'Detailed answer explanations'],
-                            ['Unlimited Practice', 'Top-up for endless questions'],
-                        ].map(([t, d]) => (
-                            <div
-                                key={t}
-                                className="rounded-2xl border border-theme-line bg-theme-glass p-4 backdrop-blur-sm"
-                            >
-                                <dt className="font-display text-sm font-semibold text-theme-strong">{t}</dt>
-                                <dd className="mt-1 text-xs text-theme-dim">{d}</dd>
-                            </div>
-                        ))}
-                    </motion.dl>
                 </div>
 
                 <motion.div
@@ -110,6 +68,24 @@ export default function HeroSection() {
                     </div>
 
                     <div className="relative w-full max-w-md lg:max-w-lg">
+                        {/* Floating Node 1 */}
+                        <motion.div
+                            className="absolute -right-6 top-1/4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-ai-accent/30 bg-theme-elevated/80 shadow-[0_0_24px_rgba(0,163,255,0.4)] backdrop-blur-md"
+                            animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                            <span className="h-2 w-2 rounded-full bg-ai-accent animate-pulse" />
+                        </motion.div>
+
+                        {/* Floating Node 2 */}
+                        <motion.div
+                            className="absolute -left-8 bottom-1/3 z-30 flex h-16 w-16 items-center justify-center rounded-full border border-purple-500/30 bg-theme-elevated/80 shadow-[0_0_24px_rgba(168,85,247,0.4)] backdrop-blur-md"
+                            animate={{ y: [0, 25, 0], x: [0, -15, 0] }}
+                            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                            <span className="h-3 w-3 rounded-full bg-purple-500 animate-pulse" />
+                        </motion.div>
+
                         <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-b from-ai-glow/20 via-ai-accent/10 to-transparent opacity-80 blur-2xl" />
                         <div className="absolute -inset-1 rounded-[1.75rem] bg-gradient-to-br from-white/20 via-ai-accent/30 to-transparent opacity-40" />
 
@@ -127,14 +103,16 @@ export default function HeroSection() {
                                         </p>
                                     </div>
                                 ) : (
-                                    <img
-                                        src="/images/hero-ai-student.png"
-                                        alt="AI enhanced learning"
-                                        onError={() => setImgError(true)}
-                                        className="relative z-10 mx-auto h-auto w-full max-w-md object-contain object-top drop-shadow-[0_0_48px_rgba(0,144,255,0.18)]"
-                                    />
+                                    <>
+                                        <img
+                                            src="/images/hero-ai-student.png"
+                                            alt="AI enhanced learning"
+                                            onError={() => setImgError(true)}
+                                            className="relative z-10 mx-auto h-full w-full object-cover aspect-[3/4] drop-shadow-[0_0_48px_rgba(0,144,255,0.18)]"
+                                        />
+                                    </>
                                 )}
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[color:var(--bg-main)] via-[color:var(--bg-main)]/40 to-transparent" />
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-1/3 bg-gradient-to-t from-[color:var(--bg-main)] via-[color:var(--bg-main)]/40 to-transparent" />
                             </div>
                         </motion.div>
                     </div>

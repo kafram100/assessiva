@@ -353,6 +353,7 @@ class StudentController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'],
+            'educational_level' => ['nullable', 'string', 'in:JHS,SHS,Tertiary'],
             'level' => ['nullable', 'string', 'max:50'],
             'profile_picture' => ['nullable', 'image', 'max:2048'], // 2MB max
             'current_password' => ['nullable', 'required_with:password', 'current_password'],
@@ -360,6 +361,9 @@ class StudentController extends Controller
         ]);
 
         $user->name = $validated['name'];
+        if (array_key_exists('educational_level', $validated)) {
+            $user->educational_level = $validated['educational_level'];
+        }
         if (array_key_exists('level', $validated)) {
             $user->level = $validated['level'];
         }

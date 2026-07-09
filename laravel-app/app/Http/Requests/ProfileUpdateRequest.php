@@ -21,9 +21,10 @@ class ProfileUpdateRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
+                'not_regex:/super\s*admin/i',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'not_regex:/super\s*admin/i'],
             'email' => [
                 'required',
                 'string',

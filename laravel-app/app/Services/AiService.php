@@ -67,6 +67,7 @@ class AiService
         $url = $base.'/'.ltrim($path, '/');
 
         $response = Http::timeout($this->timeoutSeconds())
+            ->connectTimeout(5)
             ->acceptJson()
             ->asJson()
             ->post($url, $body);

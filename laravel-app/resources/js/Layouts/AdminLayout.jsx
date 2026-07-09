@@ -373,7 +373,7 @@ export default function AdminLayout({ header, children }) {
                             effectiveCollapsed ? 'sr-only' : ''
                         }`}
                     >
-                        Admin
+                        {user?.id === 1 ? 'Super Admin' : 'Admin'}
                     </span>
                 </Link>
 
@@ -385,7 +385,7 @@ export default function AdminLayout({ header, children }) {
                                 : ''
                         }`}
                     >
-                        Admin
+                        {user?.id === 1 ? 'Super Admin' : 'Admin'}
                     </div>
 
                     <SidebarLink
@@ -460,18 +460,28 @@ export default function AdminLayout({ header, children }) {
                 </nav>
 
                 <div className="flex shrink-0 items-center gap-2.5 border-t border-theme-line px-4 py-3.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-sm font-bold text-white shadow-sm">
-                        {(user?.username ?? '?').slice(0, 1).toUpperCase()}
-                    </div>
+                    {user?.profile_picture_url ? (
+                        <img
+                            src={user.profile_picture_url}
+                            alt={user?.name}
+                            className="h-9 w-9 shrink-0 aspect-square rounded-full object-cover shadow-sm"
+                        />
+                    ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-sm font-bold text-white shadow-sm">
+                            {(user?.name ?? '?').slice(0, 1).toUpperCase()}
+                        </div>
+                    )}
                     <div
                         className={`min-w-0 flex-1 overflow-hidden ${
                             effectiveCollapsed ? 'sr-only' : ''
                         }`}
                     >
                         <div className="truncate text-sm font-semibold text-theme-strong">
-                            {user?.username}
+                            {user?.name}
                         </div>
-                        <div className="text-[0.72rem] text-theme-dim">Admin</div>
+                        <div className="text-[0.72rem] text-theme-dim">
+                            {user?.id === 1 ? 'Super Admin' : 'Admin'}
+                        </div>
                     </div>
                     <button
                         type="button"
@@ -488,16 +498,18 @@ export default function AdminLayout({ header, children }) {
                 className="flex min-h-screen flex-col transition-[margin-left] duration-200 ease-out"
                 style={{ marginLeft: mainMarginLeft }}
             >
-                <div className="ai-topbar">
+                <div className="ai-topbar flex-wrap gap-y-2">
                     <button
                         type="button"
                         aria-label="Toggle sidebar"
                         onClick={toggleSidebar}
-                        className="rounded-lg p-1.5 text-theme-dim transition hover:bg-theme-highlight hover:text-theme-strong"
+                        className="shrink-0 rounded-lg p-1.5 text-theme-dim transition hover:bg-theme-highlight hover:text-theme-strong"
                     >
                         <IconMenu className="h-6 w-6" />
                     </button>
-                    <div className="ai-topbar-title">{header}</div>
+                    <div className="ai-topbar-title min-w-0 flex-1 overflow-hidden">
+                        <div className="min-w-0 [&>*]:min-w-0">{header}</div>
+                    </div>
                     <ThemeToggle />
                 </div>
 

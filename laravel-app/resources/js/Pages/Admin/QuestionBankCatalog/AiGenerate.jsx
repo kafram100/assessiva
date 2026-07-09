@@ -13,6 +13,7 @@ export default function AiGenerate({
 }) {
     const form = useForm({
         course_name: '',
+        educational_level: '',
         level: '',
         topic: '',
         lecture_content: '',
@@ -20,6 +21,17 @@ export default function AiGenerate({
         question_count: 5,
         question_types: ['mcq'],
     });
+
+    const levelOptions = {
+        JHS: ['JHS 1', 'JHS 2', 'JHS 3'],
+        SHS: ['SHS 1', 'SHS 2', 'SHS 3'],
+        Tertiary: ['Level 100', 'Level 200', 'Level 300', 'Level 400', 'Graduate'],
+    };
+
+    const handleEducationLevelChange = (e) => {
+        const val = e.target.value;
+        form.setData({ ...form.data, educational_level: val, level: '' });
+    };
 
     const toggleType = (t) => {
         const cur = form.data.question_types || [];
@@ -53,17 +65,9 @@ export default function AiGenerate({
     return (
         <AdminLayout
             header={
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-xl font-semibold leading-tight text-theme-strong">
-                        AI Question Generation
-                    </h2>
-                    <Link
-                        href={route('admin.question-bank-catalog.index')}
-                        className="text-sm font-medium text-sky-700 hover:text-sky-900"
-                    >
-                        ← Question bank catalog
-                    </Link>
-                </div>
+                <h2 className="truncate text-base font-semibold leading-tight text-theme-strong sm:text-xl">
+                    AI Question Generation
+                </h2>
             }
         >
             <Head title="AI generate" />
@@ -72,6 +76,19 @@ export default function AiGenerate({
 
             <div className="py-8">
                 <div className="mx-auto max-w-3xl sm:px-6 lg:px-8">
+
+                    {/* Back link */}
+                    <div className="mb-4 px-4 sm:px-0">
+                        <Link
+                            href={route('admin.question-bank-catalog.index')}
+                            className="inline-flex items-center gap-1.5 text-sm text-theme-dim hover:text-theme-strong transition-colors"
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Back to catalog
+                        </Link>
+                    </div>
                     <form
                         onSubmit={submit}
                         aria-busy={form.processing}
@@ -110,25 +127,41 @@ export default function AiGenerate({
                             </div>
 
                             <div>
-                                <InputLabel htmlFor="level" value="Level" />
+                                <InputLabel htmlFor="educational_level" value="Educational Level" />
+                                <select
+                                    id="educational_level"
+                                    className="mt-1 block w-full rounded-md border border-theme-line bg-white/[0.04] p-2 text-sm text-theme-strong"
+                                    value={form.data.educational_level}
+                                    onChange={handleEducationLevelChange}
+                                    required
+                                >
+                                    <option value="">Select education level</option>
+                                    <option value="JHS">JHS (Junior High School)</option>
+                                    <option value="SHS">SHS (Senior High School)</option>
+                                    <option value="Tertiary">Tertiary (University / College)</option>
+                                </select>
+                                <InputError message={form.errors.educational_level} className="mt-2" />
+                            </div>
+                        </div>
+
+                        {form.data.educational_level && (
+                            <div>
+                                <InputLabel htmlFor="level" value="Specific Level / Class" />
                                 <select
                                     id="level"
                                     className="mt-1 block w-full rounded-md border border-theme-line bg-white/[0.04] p-2 text-sm text-theme-strong"
                                     value={form.data.level}
-                                    onChange={(e) =>
-                                        form.setData('level', e.target.value)
-                                    }
+                                    onChange={(e) => form.setData('level', e.target.value)}
                                     required
                                 >
-                                    <option value="">Select a level</option>
-                                    <option value="Year 1">Year 1</option>
-                                    <option value="Year 2">Year 2</option>
-                                    <option value="Year 3">Year 3</option>
-                                    <option value="Year 4">Year 4</option>
+                                    <option value="">Select specific level</option>
+                                    {(levelOptions[form.data.educational_level] || []).map((lv) => (
+                                        <option key={lv} value={lv}>{lv}</option>
+                                    ))}
                                 </select>
                                 <InputError message={form.errors.level} className="mt-2" />
                             </div>
-                        </div>
+                        )}
 
                         <div>
                             <InputLabel htmlFor="topic" value="Topic (optional)" />
@@ -204,7 +237,7 @@ export default function AiGenerate({
                                 id="question_count"
                                 type="number"
                                 min={1}
-                                max={100000}
+                                max={50}
                                 value={form.data.question_count}
                                 onChange={(e) =>
                                     form.setData(

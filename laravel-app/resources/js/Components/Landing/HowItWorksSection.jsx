@@ -2,10 +2,8 @@ import { motion } from 'framer-motion';
 
 const steps = [
     { n: '01', title: 'Create Account', body: 'Sign up and get instant access to your free practice questions tier.' },
-    { n: '02', title: 'Take a Quiz', body: 'Generate a 20-question practice test pulled from our extensive exam databank.' },
-    { n: '03', title: 'Get Graded', body: 'Submit your answers and get instantly graded with detailed performance metrics.' },
-    { n: '04', title: 'AI Feedback', body: 'NovaGrade analyzes your mistakes and explains the correct answers step-by-step.' },
-    { n: '05', title: 'Top Up & Master', body: 'Need more practice? Top up your tokens easily and keep acing your exams.' },
+    { n: '02', title: 'Practice & Test', body: 'Generate a practice test pulled from our extensive exam databank.' },
+    { n: '03', title: 'Get AI Feedback', body: 'Submit your answers and let NovaGrade analyze your mistakes step-by-step.' },
 ];
 
 export default function HowItWorksSection() {
@@ -25,7 +23,7 @@ export default function HowItWorksSection() {
                 <div className="relative mt-16">
                     <div className="pointer-events-none absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-transparent via-ai-accent/40 to-transparent lg:block" />
 
-                    <div className="grid gap-8 lg:grid-cols-5">
+                    <div className="grid gap-8 lg:grid-cols-3">
                         {steps.map((s, i) => (
                             <motion.div
                                 key={s.n}

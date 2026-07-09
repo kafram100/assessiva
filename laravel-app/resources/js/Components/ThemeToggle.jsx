@@ -27,7 +27,7 @@ function IconMoon(props) {
 
 function readIsDark() {
     if (typeof document === 'undefined') {
-        return true;
+        return false; // Default is light mode
     }
     return document.documentElement.classList.contains('dark');
 }

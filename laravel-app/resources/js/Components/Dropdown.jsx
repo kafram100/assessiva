@@ -74,7 +74,7 @@ const Content = ({
                 >
                     <div
                         className={
-                            `overflow-hidden rounded-xl border border-theme-line bg-theme-surface py-1 shadow-lg backdrop-blur-xl ` +
+                            `overflow-hidden rounded-xl border border-theme-line bg-[color:var(--bg-canvas)] py-1 shadow-lg backdrop-blur-xl ` +
                             contentClasses
                         }
                     >

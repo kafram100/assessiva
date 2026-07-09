@@ -29,7 +29,8 @@ class AdminUsersController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', 'not_regex:/super\s*admin/i'],
+            'username' => 'required|string|max:50|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Password::defaults()],
             'permissions' => 'nullable|array',
@@ -38,7 +39,7 @@ class AdminUsersController extends Controller
 
         User::create([
             'name' => $validated['name'],
-            'username' => explode('@', $validated['email'])[0],
+            'username' => $validated['username'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => UserRole::Admin,
@@ -68,7 +69,8 @@ class AdminUsersController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', 'not_regex:/super\s*admin/i'],
+            'username' => 'required|string|max:50|unique:users,username,' . $admin->id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $admin->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'permissions' => 'nullable|array',
@@ -76,6 +78,7 @@ class AdminUsersController extends Controller
         ]);
 
         $admin->name = $validated['name'];
+        $admin->username = $validated['username'];
         $admin->email = $validated['email'];
         if (!empty($validated['password'])) {
             $admin->password = Hash::make($validated['password']);

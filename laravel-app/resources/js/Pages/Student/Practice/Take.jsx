@@ -1,6 +1,9 @@
 import PracticeHubLayout from '@/Layouts/PracticeHubLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import Modal from '@/Components/Modal';
+import SecondaryButton from '@/Components/SecondaryButton';
+import PrimaryButton from '@/Components/PrimaryButton';
 
 export default function Take({ practiceSession, questions }) {
     const { data, setData, post, processing } = useForm({
@@ -14,8 +17,14 @@ export default function Take({ practiceSession, questions }) {
         setData('responses', { ...data.responses, [question.id]: val });
     };
 
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
+
     const submitPractice = () => {
-        if (!confirm('Submit your practice session?')) return;
+        setShowSubmitModal(true);
+    };
+
+    const confirmSubmit = () => {
+        setShowSubmitModal(false);
         post(route('student.practice.submit', practiceSession.id));
     };
 
@@ -153,6 +162,25 @@ export default function Take({ practiceSession, questions }) {
                     })}
                 </div>
             </div>
+
+            <Modal show={showSubmitModal} onClose={() => setShowSubmitModal(false)}>
+                <div className="p-6">
+                    <h2 className="text-lg font-medium text-theme-strong">
+                        Submit Practice Session?
+                    </h2>
+                    <p className="mt-1 text-sm text-theme-dim">
+                        Are you sure you want to submit your responses? You won't be able to change them afterwards.
+                    </p>
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton onClick={() => setShowSubmitModal(false)}>
+                            Cancel
+                        </SecondaryButton>
+                        <PrimaryButton onClick={confirmSubmit} disabled={processing}>
+                            {processing ? 'Submitting...' : 'Yes, Submit'}
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
         </PracticeHubLayout>
     );
 }

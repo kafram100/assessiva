@@ -347,7 +347,7 @@ html.dark {
     }
 
     .ai-topbar {
-        @apply sticky top-0 z-[1030] flex h-[58px] shrink-0 items-center gap-3 px-6 backdrop-blur-xl max-lg:pl-4;
+        @apply sticky top-0 z-[1030] flex min-h-[58px] shrink-0 items-center gap-3 px-6 py-3 backdrop-blur-xl max-lg:pl-4;
         border-bottom: 1px solid var(--topbar-border);
         background-color: var(--topbar-bg);
     }

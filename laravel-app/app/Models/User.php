@@ -36,6 +36,7 @@ class User extends Authenticatable
         'free_questions_remaining',
         'tokens',
         'level',
+        'educational_level',
         'profile_picture',
         'permissions',
     ];

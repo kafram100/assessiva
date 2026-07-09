@@ -15,6 +15,7 @@ export default function Register() {
         name: '',
         email: '',
         phone: '',
+        educational_level: '',
         password: '',
         password_confirmation: '',
     });
@@ -40,6 +41,9 @@ export default function Register() {
                 if (value && !/^0[0-9]{9}$/.test(value)) error = 'Phone number must be exactly 10 digits and start with 0.';
                 else if (!value) error = 'Phone number is required.';
                 break;
+            case 'educational_level':
+                if (!value) error = 'Educational level is required.';
+                break;
             case 'password':
                 if (value && value.length < 8) error = 'Password must be at least 8 characters.';
                 else if (!value) error = 'Password is required.';
@@ -62,11 +66,12 @@ export default function Register() {
         e.preventDefault();
         if (step === 1) {
             // Check if there are any current local errors before proceeding
-            if (!data.name || !data.email || !data.phone || localErrors.name || localErrors.email || localErrors.phone) {
+            if (!data.name || !data.email || !data.phone || !data.educational_level || localErrors.name || localErrors.email || localErrors.phone || localErrors.educational_level) {
                 // Trigger validation for empty fields
                 validateField('name', data.name);
                 validateField('email', data.email);
                 validateField('phone', data.phone);
+                validateField('educational_level', data.educational_level);
                 return;
             }
             setStep(2);
@@ -149,6 +154,28 @@ export default function Register() {
                                 />
 
                                 <InputError id="phone-error" message={localErrors.phone || errors.phone} className="mt-2" />
+                            </div>
+
+                            <div className="mt-4">
+                                <InputLabel htmlFor="educational_level" value="Educational Level" />
+
+                                <select
+                                    id="educational_level"
+                                    name="educational_level"
+                                    value={data.educational_level}
+                                    className="mt-1 block w-full bg-theme-layer-1 border-theme-layer-3 text-theme-content placeholder-theme-dim/50 rounded-xl focus:border-theme-primary focus:ring-theme-primary transition-colors py-2 px-3"
+                                    onChange={(e) => handleChange('educational_level', e.target.value)}
+                                    aria-invalid={!!(localErrors.educational_level || errors.educational_level)}
+                                    aria-describedby="educational_level-error"
+                                    required
+                                >
+                                    <option value="" disabled>Select your educational level</option>
+                                    <option value="JHS">JHS</option>
+                                    <option value="SHS">SHS</option>
+                                    <option value="Tertiary">Tertiary</option>
+                                </select>
+
+                                <InputError id="educational_level-error" message={localErrors.educational_level || errors.educational_level} className="mt-2" />
                             </div>
 
                             <div className="flex items-center justify-between mt-8">

@@ -153,6 +153,8 @@ export default function Index({
             if (response.data.practiceSession && response.data.questions) {
                 setPracticeSession(response.data.practiceSession);
                 setQuestions(response.data.questions);
+                // Reload the auth prop to instantly update the token balance display
+                router.reload({ only: ['auth'] });
             }
         } catch (error) {
             console.error("Error generating practice:", error);
@@ -192,8 +194,8 @@ export default function Index({
                     Level up before exam day
                 </h1>
                 <p className="mx-auto mt-3 max-w-2xl text-theme-dim sm:mx-0">
-                    Explore lecturer-crafted practice quizzes. Filter by school, program, or topic - then
-                    practice at your own pace with instant feedback.
+                    Master your courses with expert-curated quizzes. Find your topic,
+                    test your knowledge, and get instant feedback.
                 </p>
                 {user && (
                     <div className="mt-8 rounded-2xl border border-violet-500/30 bg-violet-500/5 p-4 sm:p-5 max-w-4xl mx-auto sm:mx-0 text-left">
