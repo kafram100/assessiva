@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect all requests to the public/ directory
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Deny access to sensitive files
+<FilesMatch "\.(env|json|lock|log|md|phar|yml|yaml|xml)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to sensitive directories
+RedirectMatch 404 ^/(\.git|bootstrap|database|resources|routes|storage|vendor|config|app|tests|node_modules)/(.*)$
+
+# Disable directory listing
+Options -Indexes

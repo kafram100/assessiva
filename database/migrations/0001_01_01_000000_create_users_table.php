@@ -1,0 +1,64 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('username', 50)->unique();
+            $table->string('email', 100)->nullable()->unique();
+            $table->string('full_name', 100)->nullable();
+            $table->string('phone', 20)->nullable();
+            $table->string('password');
+            $table->decimal('balance', 10, 2)->default(0.00);
+            $table->string('role', 20)->default('agent');
+            $table->string('status', 20)->default('active');
+            $table->boolean('is_store_enabled')->default(false);
+            $table->decimal('store_commission_rate', 5, 2)->default(10.00);
+            $table->decimal('minimum_markup_percent', 5, 2)->default(5.00);
+            $table->string('reset_token', 255)->nullable();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
+        });
+
+        Schema::create('personal_access_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->string('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('personal_access_tokens');
+        Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
+    }
+};

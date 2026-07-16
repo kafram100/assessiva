@@ -1,0 +1,215 @@
+## Goal
+- Stable role-based auth (Agent/Dealer/Sub-Agent), public storefront checkout, sub-agent ordering via sub-agent's own wallet (deducted atomically before order is created), and one-time payment verification for all roles.
+
+## Constraints & Preferences
+- Auto-detect network from phone number on BuyData page — show only that network's packages as soon as the prefix matches (no longer wait for 10 digits)
+- "All Networks" option only on create form (not edit); creates 3 records (MTN/Vodafone/AirtelTigo) automatically
+- Package sizes shown in GB only to customers — MB values converted automatically
+- Order details open as modal, not inline expand
+- No "Customer" name column in Customer Orders table; columns: ID, Phone, Network, Package, Amount, Status, Date
+- 2% processing fee applies wherever Paystack gateway is used; Moolre has no fee
+- Public customer page uses solid background (no scrolling)
+- Agent BuyData and wallet API calls go through web routes, not API routes — the `api` middleware group lacks session-based auth; only web routes can authenticate via the Inertia login session
+- **Sub-agent auth is manual session-based** (`session('sub_agent_id')`), NOT Laravel guards — the sub-agent feature was crashing AuthManager until we abandoned the guard/provider approach and went with manual session management.
+
+## Progress
+### Done
+- **Order separation fixed:** `OrderManager::loadCustomerOrders()` queries `Order` model (public checkout); `loadAgentDealerOrders()` queries only `AgentOrder` — public orders no longer leak into agent section
+- **Order Manager UI refactored:** Removed "Customer" name column from Customer Orders; reordered columns (ID → Phone → Network → Package → Amount → Status → Date); inline expand replaced with centered modal overlay; modal closes on backdrop/X/Escape with body scroll lock
+- **Package name added to orders:** Migration adds `package_name` column; `PublicOrderController::checkout()` stores it; OrderManager maps it with fallback
+- **MB→GB conversion for BuyData:** `pkgSize()` converts MB values (1024 MB → 1GB, 2048 MB → 2GB)
+- **BuyData network behavior fixed:** Auto-detects network from prefix; filter buttons removed; network tags are display-only; resets `activeNet` on phone change; prompts updated
+- **"All Networks" bulk-create for Customer Packages:** `CreateCustomerPackage` overrides `handleRecordCreation` to create 3 records for MTN/Vodafone/AirtelTigo; create uses `->url()` navigation to avoid modal limitations
+- **2% Paystack fee across system:** Migration adds `processing_fee` to orders; `PublicOrderController::checkout()` calculates 2%; `WalletTopupController::initiate()` uses 2% for Paystack, 0% for Moolre; BuyData confirmation step shows fee breakdown; OrderResource and OrderManager display fee
+- **Public customer page styling:** Solid `bg-primary-900` header; reduced padding; `noScroll` prop replaced with `h-screen flex flex-col` layout so page scrolls properly when packages appear after phone entry
+- **Tailwind JIT `bg-primary-900` fix:** Safelist in `tailwind.config.js` for `bg-primary-50` and `bg-primary-900`
+- **053 MTN prefix added** to NETWORKS constant
+- **Agent auth — registration:** username, phone, email, password; role=agent. **Login:** email OR phone number
+- **Wallet fee dynamic display:** `WalletController` resolves gateway and passes `feeRate` prop; Wallet.jsx shows/hides fee line; fallback `feeRate = 0.01`
+- **Agent portal blank page fix:** `User.balance` cast changed from `'decimal:2'` to `'float'`; `BalanceHistory.change_amount`/`balance_after` casts changed to `'float'`; `DashboardController` casts to `(float)` in mapping
+- **Agent BuyData API auth root cause found and fixed:**
+  - Root cause: Agent BuyData loaded data via `axios.get('/api/agent/packages')` — this route is in `api.php` behind the `auth` middleware. The `api` middleware group on this Laravel 12 setup doesn't include session middleware, so the `auth` guard can't identify the user (who logged in via Inertia/web). Result: API returned 401 silently, `netList` stayed `[]`, balance stayed `0`.
+  - Fix: Moved all agent-protected data/action endpoints from `api.php` to `web.php` inside the `auth` group, where session middleware is present:
+    - Initial packages/balance loading: now done server-side in the Inertia route handler (web.php:36), passed as props to BuyData.jsx
+    - `POST /agent/order` — order placement via web route
+    - `POST /wallet/topup` — wallet topup initiation via web route
+    - `GET /wallet/topup/{reference}/status` — status polling via web route
+  - All JSX updated to POST/GET to web routes instead of `/api/...` paths
+- **Agent BuyData role check fix:** `AgentOrderController::placeOrder()` role check now allows packages with `role = 'all'` (was strict `!==` which rejected all packages since agents have `role = 'agent'`)
+- **AgentPackage `package_size_gb` cast:** Changed from `'decimal:2'` (returns "1.0000") to `'float'` (returns `1.0`) for clean display
+- **Dealer Portal built:**
+  - `EnsureDealerRole` middleware (`role = 'dealer'` strict check)
+  - `dealer` middleware alias registered in `bootstrap/app.php`
+  - 8 routes in `web.php` (dashboard, buy-data, orders, wallet, sub-agents, store, store-orders)
+  - 7 controllers under `App\Http\Controllers\Dealer\`
+  - 7 JSX pages under `resources/js/Pages/Dealer/`
+  - `AuthenticatedLayout.jsx` updated with conditional dealer nav links
+  - `User.php` `subSellers()` relationship added
+  - `HandleInertiaRequests.php` shares `flash` prop
+  - `LoginRequest.php` supports username, email, or phone login
+- **Login CSRF fix:** Added `*login*` to CSRF exclusion in `bootstrap/app.php`; XAMPP path-based URLs (`/laravel-app/public/login`) caused CSRF token mismatch via standard Inertia flow
+- **Dealer Payment Configuration:**
+  - Migration adds `paystack_public_key` and `paystack_secret_key` columns to `agent_store_settings`
+  - `AgentStoreSetting` model updated with new fillable fields
+  - `PaystackGateway` supports per-instance key configuration via `configure()` method
+  - `PaymentRouter::forDealerStore(int $agentId)` returns gateway pre-configured with dealer's Paystack keys
+  - `Dealer\PaymentSettingsController` — GET (show form) and POST (save keys)
+  - `Dealer/PaymentSettings.jsx` — UI with masked secret key display, info box, platform key reference
+  - Route `GET|POST /dealer/payment-settings` in dealer middleware group
+  - "Payment Settings" nav link in `AuthenticatedLayout.jsx` for dealers
+- **Public Storefront built:**
+  - `GET /store/{slug}` — no auth, shows dealer's packages with custom pricing
+  - `POST /store/{slug}/checkout` — creates `StoreOrder` + initiates Paystack payment via dealer's keys
+  - `GET /store/payment/callback` — verifies payment, updates order, redirects to success page
+  - `GET /store/{slug}/order/{id}/success` — order confirmation page
+  - `StorefrontController` handles all four actions
+  - `Storefront.jsx` — package grid, auto-network detection, Buy Now redirects to Paystack
+  - `StorefrontSuccess.jsx` — order summary after payment
+- **Sub-Agent Portal built:**
+  - `SubAgent` model with manual session-based auth (no `Authenticatable` interface), balance-based
+  - `EnsureSubAgentRole` middleware reads `session('sub_agent_id')` instead of Laravel guard
+  - `GET|POST /sub-agent/login`, `POST /sub-agent/logout` — manual session management
+  - `GET /sub-agent/dashboard` — package grid with customer details form, Buy button creates `StoreOrder` from sub-agent balance
+  - `GET /sub-agent/orders` — paginated order table for sub-agent's sales
+  - `LoginController` — credentials validated against `sub_agents` table, `password_verify()` check
+  - `DashboardController` — loads dealer packages with custom pricing, sub-agent balance
+  - `OrderController` — deducts from sub-agent balance atomically, creates StoreOrder (no Paystack redirect per order)
+  - `TopupController` — deposit via Paystack (dealer's keys), callback credits sub-agent balance
+  - Converted from commission model to wallet/topup model — balance stored in `sub_agents.balance`, `sub_agent_balance_history` tracks transactions
+- **Laravel 12 auth provider `driver` fix:**
+  - Root cause: Laravel 12's `CreatesUserProviders` trait requires an explicit `'driver' => 'eloquent'` in the provider config. The shipped default `config/auth.php` had `['model' => App\Models\User::class]` without the `driver` key, causing `match (null)` to fall through to the `default` case and throw `Authentication user provider [] is not defined` on EVERY request.
+  - Fix: Added `'driver' => 'eloquent'` to the `'users'` provider in `config/auth.php:65`.
+  - Impact: Entire site (homepage, login, dealer pages, storefront, etc.) was returning 500. After fix, all pages return 200.
+- **Dealer Pricelist built:**
+  - `Dealer\PricelistController` — GET loads all active packages grouped by network; POST bulk-updates `customer_price` and `sub_agent_price` via `AgentPackagePricing`
+  - `Dealer/Pricelist.jsx` — per-network table with base price (read-only), store price, sub-agent price, margin %, inline edit for each package
+  - Route `GET|POST /dealer/pricelist` in dealer middleware group
+  - "Pricelist" nav link in `AuthenticatedLayout.jsx` for dealers, placed after "Payment Settings"
+
+### Done (cont.)
+- **PWA system setup:** `vite-plugin-pwa` configured in `vite.config.js`; `public/manifest.json` with app name, icons, theme color; `public/sw.js` generated on build; `public/icons/` icons; ServiceWorker registered in `app.js`; `rel="apple-touch-icon"` and `theme-color` meta in `app.blade.php`; Laravel HTTP cache headers via `service-worker.js` catch-all route in `web.php`
+- **Overflow (scrollbar) background fix:** Removed `bg-white dark:bg-neutral-900` from `overflow-x-auto` wrappers across all pages — scrolling tables now inherit parent background seamlessly
+- **Order tables horizontal scroll:** Added `min-w-max whitespace-nowrap` to all `<table>` elements in dealer/agent order tables to prevent column wrapping
+- **Tablet hamburger menu fix:** Changed sidebar/hamburger breakpoints from `sm:` to `lg:` in `AuthenticatedLayout.jsx` — tablet users now see the hamburger menu instead of a broken sidebar
+- **Body horizontal scroll fix:** Added `overflow-x-hidden` to `<body>` via `App.css`
+- **Sub-Seller Actions icons:** Replaced "Edit" text button with 3-icon action bar (Edit, Credit Balance ⨁, Reset Password 🔑) in `SubAgents.jsx`; added Credit modal (POST to `dealer.sub-agents.credit`) and Reset Password modal (POST to `dealer.sub-agents.reset-password`) — backend routes and controller methods (`SubAgentController::credit`, `SubAgentController::resetPassword`) were already in place from previous work
+- **GHDataConnect API integration:**
+  - `config/services.php` — added `ghdataconnect` config key (base URL + API key via `.env`)
+  - `app/Services/DataBundle/GHDataConnectProvider.php` — implements all 5 GHDataConnect endpoints: `purchaseData`, `createIshareBundleOrder`, `fetchBalance`, `checkOrderStatus`, `getAllNetworks`
+  - `app/Services/DataBundle/DataBundleRouter.php` — router that dispatches to either `GHDataConnectProvider` or legacy `ExternalAPIService` based on `AppSetting::getValue('data_provider')`
+  - `app/Jobs/ProcessDataBundleOrder.php` — updated to use `DataBundleRouter` instead of directly calling `ExternalAPIService`
+  - `app/Http/Controllers/Api/DataBundleController.php` — exposes GHDataConnect-style endpoints via `api/v1/*` that route through the active provider
+  - `routes/api.php` — added 6 routes under `api/v1/` prefix
+  - `app/Filament/Pages/DataProviderSettings.php` — admin page to toggle between `Legacy`, `GHDataConnect`, and `DataFlow Ghana` providers
+  - `app/Providers/Filament/AdminPanelProvider.php` — added "Data Provider" nav item under Configuration
+  - `.env.example` — added `GHDATACONNECT_BASE_URL`, `GHDATACONNECT_API_KEY`, `DATAFLOW_BASE_URL`, `DATAFLOW_EMAIL`, `DATAFLOW_PASSWORD`
+  - Old `ExternalAPIService` + `ApiConfig` system fully preserved — toggle in admin (Configuration > Data Provider) switches between providers
+- **DataFlow Ghana API integration:**
+  - `config/services.php` — added `dataflow` config key (base URL + email + password via `.env`)
+  - `app/Services/DataBundle/DataFlowProvider.php` — implements DataFlow API client with auto-login (email/password → Bearer token cached 24h), `purchaseData`, `getOrders`, `getTransactions`, `getTransaction`, `getTransactionStatus`, `getAfaProducts`, `createAfaOrder`
+  - Network ID mapping: MTN=5, TELECEL=6, ISHARE=7, BIGTIME=8
+  - `routes/api.php` — added 7 routes under `api/dataflow/` prefix
+  - `DataBundleRouter` updated with `PROVIDER_DATAFLOW` constant
+  - Token auto-generated via `POST /api/v1/token/create` on first use, cached in Laravel cache for 24h
+
+### Done (cont.)
+- **Dashboard stat cards restyled:** All cards now use 100% opacity solid `hsl()` backgrounds with white text and `text-white/80` subtext labels — replaced old semi-transparent `hsla` backgrounds for better readability and consistent look
+- **Overview cards reordered:** Total Data Delivered card moved to first position (before API Wallet Balance)
+- **Agents/Dealers tab search bar modernized:** Wider (`w-64`), `rounded-xl`, `bg-gray-50` background, adjusted icon/padding for cleaner appearance
+- **Action buttons CSS class extracted:** Replaced inline `onmouseover`/`onmouseout` handlers with reusable `.action-btn` CSS class; added `hover: scale(1.1)` animation and dark mode hover variant
+- **DataFlow static token support:** Added `DATAFLOW_API_TOKEN` env var — if set, used directly instead of email/password login flow. `config/services.php` updated, `DataFlowProvider::getToken()` checks static token first, `DataBundleRouter::isCredentialsConfigured()` accepts token OR email+password.
+- **"All Networks" removed from network dropdowns:** Removed from `CustomerPackageResource.php`, `DealerPackageResource.php`, and `AgentPackageResource.php`. Simplified `CreateCustomerPackage.php` (no longer needs `handleRecordCreation` override).
+- **Store orders merged into Agent & Dealer orders table:** Removed separate "Store Orders" section from OrderManager; store orders now appear in the "Agent, Dealer & Store Orders" table with normalized keys. Type badges use different colors (Agent Order=purple, Sub-Seller=teal, Storefront=blue). Bulk update handles both `agent_order` and `store_order` types.
+- **Dashboard reactive status cards:** OrderManager Livewire component now computes and dispatches fresh order counts after every status update. Dashboard Blade listens via Alpine.js `x-on:order-counts-updated.window` and updates card numbers instantly (no page reload needed).
+- **Processing card spinner animation:** Added `:class="{ 'fa-spin': processing > 0 }"` to the Processing card's spinner icon — spins when count > 0.
+- **Profit calculation simplified:** Changed from looking up `AgentPackage.price` per network to a flat `BASE_PRICE_PER_GB = 3.8` across all networks. Profit = `amount_sold - (package_size_gb × 3.80)`.
+- **Automatic delivery status polling added:**
+  - `ExternalAPIService::checkOrderStatus()` — calls the configured `status_endpoint` with `{order_id}` placeholder replaced by the external transaction ID. Returns `is_delivered` flag.
+  - `DataFlowProvider::checkOrderStatus()` — wraps `getTransaction()` with `is_delivered` evaluation.
+  - `GHDataConnectProvider::checkOrderStatus()` — already existed, now adds `is_delivered` key.
+  - `DataBundleRouter::checkOrderStatus()` — routes to the active provider.
+  - `App\Console\Commands\CheckOrderDelivery.php` — artisan command `orders:check-delivery` that polls processing orders (AgentOrder, StoreOrder, Order) with an `external_transaction_id` and updates them to `completed` when delivered.
+  - `routes/console.php` — scheduled `orders:check-delivery` to run `everyMinute()`.
+
+### Security & Code Quality Audit — All 45 issues fixed
+- **Paystack secret keys encrypted** — `encrypted` cast on `AgentStoreSetting.paystack_secret_key` (plaintext in DB no longer)
+- **Race condition fixed** — balance deduction now atomic via `User::where('id', $id)->where('balance', '>=', $amount)->decrement(...)` instead of check-then-decrement (AgentOrderController + SubAgent OrderController)
+- **Hardcoded email fixed** — `PublicOrderController` now uses `$request->input('customer_email', config('...'))` instead of `'customer@example.com'`
+- **Admin routes authorized** — `RedirectNonAdmin` middleware added to `admin/*` route group
+- **CSRF exemption narrowed** — `*login*` changed to explicit `'login', 'sub-agent/login'`
+- **Dead models deleted** — `SubAgentEarning`, `PendingDatabundleOrder`, `ProcessingDatabundleOrder`, `VerifiedDatabundleOrder`, `CompletedDatabundleOrder` removed; `StoreOrder.subSellerEarnings()` relation removed
+- **Inconsistent casts standardized** — `StoreOrder` and `AgentPackage` changed from `decimal:2` to `float` everywhere
+- **DataBundleRouter DRY refactored** — all 8 if/else chains replaced with `match()` expressions, reducing LOC by 40%
+- **WalletTopupController DRY refactored** — duplicate credit logic extracted to private `creditTopup()` helper (4 call sites → 1)
+- **CheckOrderDelivery refactored** — 3 duplicate query blocks merged into 1 loop with model map; error logging added; returns `FAILURE` on missing credentials
+- **N+1 queries fixed** — `StorefrontController.index()` now eager-loads `agentPackagePricing` relation
+- **OrderManager error handling** — try/catch added around `computeAndDispatchCounts`, `loadCustomerOrders`, `loadAgentDealerOrders`
+- **Missing facade import fixed** — `Schedule` imported in `routes/console.php`
+- **Missing form validation added** — `$this->form->validate()` call before `getState()` in `DataProviderSettings`
+- **Session ID typed** — `EnsureSubAgentRole` casts session value to `(int)`
+- **Strict comparison type-safe** — `StorefrontController` casts both sides of `!==`
+- **Missing credentials logging** — `CheckOrderDelivery` logs failed checks via `Log::warning`
+- **`resolve()` helper added to DataBundleRouter** — cached provider instance via `match()` reducing `app()` calls
+### Security Audit — Storefront & Sub-Seller (7 issues found & fixed)
+- **CRITICAL — Open redirect in `paymentCallback`:** The slug query param was used directly in `redirect()->to()` without validation. Attacker could craft `/store/payment/callback?cancelled=true&slug=../../admin` to redirect victims to `/admin`. Fixed: slug is now resolved from the order's dealer store (when reference available) or validated against DB before redirect. Falls back to `/` if no valid slug.
+- **HIGH — No brute-force protection on sub-agent login:** Login POST had no throttling — unlimited credential guessing per second. Fixed: added `throttle:5,1` middleware.
+- **MEDIUM — No route parameter constraints on `{slug}`:** Storefront routes accepted any string for `{slug}`, enabling path traversal sequences to be captured and re-injected into callback URLs. Fixed: added `->where(['slug' => '[a-z0-9-]+'])` and `->where(['orderId' => '[0-9]+'])` constraints.
+- **MEDIUM — Store slug update bypasses sanitization:** On update, the slug was saved as-is (unlike initial creation which uses `Str::slug()`). A dealer could set slug to `../../admin`. Fixed: apply `Str::slug()` on update.
+- **MEDIUM — Topup callback didn't verify payment ownership:** `sub_agent_id` from Paystack `metadata` was not checked against the session user. A reference initiated by one sub-agent could be used by another. Fixed: added `$metadataSubAgentId !== $subSeller->id` check.
+- **LOW — Suspension error message lost:** `session()->invalidate()` was called before `withErrors()`, wiping the flash message. User never saw "Your account has been suspended." Fixed: replaced `invalidate()` with `regenerate()` (keeps flash data).
+- **LOW — `password_hash` mass-assignable:** `password_hash` was in `$fillable` — plaintext could bypass hashing via `SubAgent::create()`. Fixed: removed from `$fillable`; all controller assignments now use explicit property set.
+### Blocked
+- (none)
+
+## Key Decisions
+- "All Networks" handled at page level (`handleRecordCreation`) not modal level because table `CreateAction` modals bypass custom page logic — forced navigation to create page with `->url()`
+- BuyData network buttons completely removed from packages card — user switches network only by changing phone number
+- 2% fee applied at controller level rather than inside gateway — ensures fee tracked in DB
+- Wallet topup uses 2% for Paystack, 0% for Moolre — gateway type checked early
+- **Agent API calls moved to web routes** instead of configuring Sanctum SPA (`EnsureFrontendRequestsAreStateful`) — simpler, avoids publishing/changing sanctum config, no stateful domain configuration needed
+- `package_size_gb` cast to `float` instead of `'decimal:2'` — prevents ugly "1.0000 GB" display; float precision sufficient for package sizes
+- **Sub-agent auth is manual session-based**, not Laravel guard/provider — the guard approach crashed AuthManager because the `SubAgent` model's `Authenticatable` implementation conflicted with the auth boot chain. Switched to `session('sub_agent_id')` + `password_verify()`.
+- **Sub-agent pays from own wallet first, then dealer balance is verified** — `SubAgent\OrderController::placeOrder()` atomically decrements `sub_agents.balance` first, then checks and decrements the dealer's `users.balance`. If the dealer has insufficient funds, the sub-agent is **not refunded** — instead the StoreOrder is created with `status = 'failed'` and `failure_reason = 'Failed, Not enough funds in dealers account'`. The sub-agent's `SubAgentBalanceHistory` records `reason = 'order_failed_dealer_funds'` so the deduction is traceable. No `BalanceHistory` is created for the dealer (no deduction happened). The order is visible as failed in both the sub-agent's and dealer's orders pages. Both deductions require >= check via atomic `where('balance', '>=', $price)->decrement()` to prevent race conditions.
+- **Laravel 12 requires `'driver' => 'eloquent'`** in provider configs — the `CreatesUserProviders` trait uses `match ($driver)` and falls through to the `default` case if `$driver` is null (missing from config). Unlike Laravel 11 where a missing driver defaulted silently, Laravel 12 throws.
+
+## Critical Context
+- **API routes (`api.php`) don't have session middleware** — the default Laravel 12 `api` middleware group does not include `EnsureFrontendRequestsAreStateful`. All agent-protected routes must go through `web.php` with `auth` middleware. The public API routes (`/api/packages`, `/api/checkout`, `/api/orders/*`, `/api/payment/callback`) work fine without auth.
+- `AgentPackage` table has packages with `role = 'all'`, not `role = 'agent'` — both the data query and the `placeOrder` role check must allow `role = 'all'`
+- `AgentPackage.package_size_gb` is now a `float` cast — outputs `1.0` instead of `"1.0000"`. Concatenated with " GB" gives "1 GB" (the `.0` is dropped by PHP when casting float to string in concatenation)
+- The `api.php` routes for `/api/agent/packages`, `/api/agent/order`, `/api/wallet/topup`, `/api/wallet/topup/{reference}/status` still exist but are no longer used from the JS frontend. They can be removed in a future cleanup.
+- **Sub-agent auth is manual session-based** — after the guard approach crashed the AuthManager, we switched to `session('sub_agent_id')` for all sub-agent auth. Controllers use `SubAgent::find(session('sub_agent_id'))` directly. `EnsureSubAgentRole` middleware checks `session('sub_agent_id')` instead of calling `auth()`.
+- **`'driver' => 'eloquent'` REQUIRED in Laravel 12** — the `CreatesUserProviders` trait at `vendor/laravel/framework/src/Illuminate/Auth/CreatesUserProviders.php:36-42` uses `match ($driver)` with three cases (`database`, `eloquent`, `default`). If `$config['driver']` is null (missing from config), `match (null)` hits the `default` case and throws.
+
+## Relevant Files
+- `routes/web.php`: All agent-protected routes (buy-data, order, wallet topup/status) — moved from API routes to web auth group; storefront routes + sub-agent auth + sub-agent protected routes
+- `routes/api.php`: Public routes (packages, checkout, orders, payments) + unused agent routes + `api/v1/*` GHDataConnect-style routes + `api/dataflow/*` DataFlow routes
+- `app/Services/DataBundle/DataBundleRouter.php`: Routes purchase requests to the active provider
+- `app/Services/DataBundle/GHDataConnectProvider.php`: GHDataConnect API client (5 endpoints)
+- `app/Services/DataBundle/DataFlowProvider.php`: DataFlow Ghana API client with auto-login
+- `app/Http/Controllers/Api/DataBundleController.php`: Exposes GHDataConnect-style + DataFlow API endpoints
+- `app/Filament/Pages/DataProviderSettings.php`: Admin toggle page for data provider (Legacy/GHDataConnect/DataFlow)
+- `app/Http/Controllers/Api/AgentOrderController.php`: `placeOrder()` role check fixed to allow `role = 'all'`; `auth` middleware in constructor (redundant now for web routes but harmless)
+- `app/Http/Controllers/Api/WalletTopupController.php`: Unchanged — used by web routes with `auth` group middleware
+- `app/Models/AgentPackage.php`: `package_size_gb` cast changed to `float`
+- `resources/js/Pages/Agent/BuyData.jsx`: Uses Inertia props (`packagesData`, `networks`, `balance`) instead of API call; POSTs to `/agent/order`
+- `resources/js/Pages/Agent/Wallet.jsx`: POSTs to `/wallet/topup`, polls `/wallet/topup/{ref}/status`
+- `app/Models/User.php`: `balance` cast `float`
+- `app/Models/BalanceHistory.php`: `change_amount`/`balance_after` casts `float`
+- `app/Http/Controllers/Agent/WalletController.php`: Passes `feeRate` prop
+- `app/Http/Controllers/Agent/DashboardController.php`: `(float)` casts in mapping
+- `config/auth.php:65`: Added `'driver' => 'eloquent'` to 'users' provider — critical for Laravel 12
+- `app/Http/Controllers/StorefrontController.php`: Handles public storefront + checkout + payment callback
+- `app/Http/Controllers/SubAgent/Auth/LoginController.php`: Manual session-based sub-agent login/logout
+- `app/Http/Controllers/SubAgent/DashboardController.php`: Sub-agent buy-data with customer form
+- `app/Http/Controllers/SubAgent/OrderController.php`: Place order + list orders (deducts from sub-agent balance atomically)
+- `app/Http/Controllers/SubAgent/TopupController.php`: Deposit via Paystack, callback credits sub-agent balance
+- `app/Http/Middleware/EnsureSubAgentRole.php`: Reads `session('sub_agent_id')` for auth (no Laravel guard)
+- `app/Models/SubAgent.php`: Manual session auth (no `Authenticatable` interface), balance-based
+- `resources/js/Pages/SubAgent/Auth/Login.jsx`: Sub-agent login page
+- `resources/js/Pages/SubAgent/Dashboard.jsx`: Sub-agent buy-data page
+- `resources/js/Pages/SubAgent/Orders.jsx`: Sub-agent order list
+- `resources/js/Pages/SubAgent/Topup.jsx`: Sub-agent topup form
+- `resources/js/Pages/Dealer/PaymentSettings.jsx`: Dealer Paystack key config form
+- `database/migrations/2026_06_03_163348_add_paystack_keys_to_agent_store_settings.php`: Adds key columns
+- **Vite base config for XAMPP subdirectory:** Hardcoded ase: '/well-known/public/build/' in ite.config.js (and ase: '/well-known/public/' for VitePWA) to ensure dynamic JS chunks load correctly instead of throwing 500 errors from the root domain.
+- **SubAgent 403 Fixed:** Replaced strict inequality (!==) with loose inequality (!=) in SubAgentController ownership checks. In some production environments, PDO returns gent_id as a string which causes strict equality with integer user_id to fail.
