@@ -19,10 +19,10 @@
             })();
         </script>
 
-        <meta name="description" content="NovaGrade: The ultimate AI-powered practice hub. Test your knowledge with randomized exams and get detailed feedback to master your subjects.">
-        <meta name="application-name" content="NovaGrade">
+        <meta name="description" content="Assessiva: The ultimate AI-powered practice hub. Test your knowledge with randomized exams and get detailed feedback to master your subjects.">
+        <meta name="application-name" content="Assessiva">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title inertia>{{ config('app.name', 'NovaGrade') }}</title>
+        <title inertia>{{ config('app.name', 'Assessiva') }}</title>
         <link rel="icon" type="image/png" href="/favicon.png" />
 
         <!-- Fonts: premium landing + app UI -->

@@ -1,7 +1,7 @@
 # Agent Instructions
 
 ## Goal
-To build and maintain the AI-powered Question Bank preparation platform (Novagrade).
+To build and maintain the AI-powered Question Bank preparation platform (Assessiva).
 
 ## Key Directives
 - **Terminology**: Always use "User" instead of "Student". Do not build or maintain features for "Lecturers" (the lecturer role has been completely removed).

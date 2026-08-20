@@ -1,6 +1,6 @@
 # Project Context
 
-This system is an AI-powered Question Bank and Exam Preparation Platform (Novagrade). 
+This system is an AI-powered Question Bank and Exam Preparation Platform (Assessiva). 
 Students are now referred to as **Users**. 
 There are NO lecturers in this system.
 

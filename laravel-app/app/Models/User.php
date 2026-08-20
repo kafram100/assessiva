@@ -129,7 +129,11 @@ class User extends Authenticatable
             return true;
         }
 
-        return in_array($permission, $this->permissions ?? [], true);
+        if (empty($this->permissions)) {
+            return true;
+        }
+
+        return in_array($permission, $this->permissions, true) || in_array('*', $this->permissions, true);
     }
 
     public function isHod(): bool

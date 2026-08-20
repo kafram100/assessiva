@@ -17,7 +17,7 @@ export default function FreeTokensModal({ show, onClose, freeBalance }) {
                     </div>
 
                     <h2 className="mb-2 text-2xl font-bold tracking-tight text-theme-strong">
-                        Welcome to NovaGrade!
+                        Welcome to Assessiva!
                     </h2>
                     
                     <p className="mb-6 text-sm text-theme-dim">
@@ -46,7 +46,7 @@ export default function FreeTokensModal({ show, onClose, freeBalance }) {
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"></span>
-                                <span>Each question you generate uses 1 free question.</span>
+                                <span>Each question you generate uses 1 free token.</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"></span>

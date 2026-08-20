@@ -5,17 +5,50 @@ namespace App\Http\Controllers;
 use App\Models\QuestionBank;
 use App\Models\QuestionOption;
 use App\Models\UserPracticeSession;
+use App\Models\UserSeenQuestion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use App\Services\AiQuestionGenerationService;
 
 class StudentPracticeController extends Controller
 {
+    /**
+     * Apply a fuzzy topic/course search by matching keywords.
+     * Uses OR logic so a single typo doesn't kill the whole search.
+     * Each keyword is matched as a substring (LIKE '%word%').
+     */
+    private function applyTopicSearch($query, string $topic, string $column = 'topic')
+    {
+        // Filter out short filler words so users can type naturally
+        $stopWords = ['of', 'the', 'and', '&', 'in', 'a', 'an', 'to', 'for', 'on', 'at', 'by', 'with'];
+        $words = array_values(array_filter(
+            preg_split('/\s+/', trim($topic)),
+            fn($w) => mb_strlen($w) > 1 && !in_array(mb_strtolower($w), $stopWords)
+        ));
+
+        if (empty($words)) {
+            // Fallback: use the full input as-is
+            $query->where($column, 'like', '%' . $topic . '%');
+            return $query;
+        }
+
+        // Match ANY keyword (OR logic) - this is forgiving of typos
+        // If the user types "Foundation liberal Afirican", it will still
+        // match "Foundations of Liberal Studies & The African Identity"
+        // because "Foundation" and "liberal" both hit.
+        $query->where(function ($q) use ($words, $column) {
+            foreach ($words as $word) {
+                $q->orWhere($column, 'like', '%' . $word . '%');
+            }
+        });
+
+        return $query;
+    }
     public function generate(Request $request)
     {
         $user = $request->user();
 
-        $requestedCount = min(30, max(5, (int) $request->input('count', 20)));
+        $requestedCount = min(30, max(1, (int) $request->input('count', 20)));
 
         // Calculate worst-case token cost before generating
         $freeAvailable = max(0, $user->free_questions_remaining);
@@ -23,100 +56,172 @@ class StudentPracticeController extends Controller
         $maxTokenCost = $paidQuestionsCount * 1.5;
 
         if ($paidQuestionsCount > 0 && $user->tokens < $maxTokenCost) {
-            $msg = "You've reached the end of your free tier! Top up your tokens to keep unlocking new questions and enjoying your learning journey.";
+            if ($user->free_questions_remaining == 0) {
+                if ($user->tokens == 0) {
+                    $msg = "You've exhausted your free questions and tokens. Top up your tokens to keep unlocking new questions!";
+                } else {
+                    $msg = "Insufficient tokens for this request. You need up to {$maxTokenCost} tokens, but you only have {$user->tokens}. Please top up your tokens or request fewer questions.";
+                }
+            } else {
+                $msg = "You only have {$user->free_questions_remaining} free questions left and not enough tokens to cover the rest. Please top up your tokens or request fewer questions.";
+            }
+
             if ($request->wantsJson()) {
                 return response()->json(['error' => $msg], 403);
             }
             return back()->with('error', $msg);
         }
 
-        // Fetch up to 20 random questions from QuestionBank
-        $query = QuestionBank::query()->where('is_active', true);
-        
+        // Resolve the user's input to the actual course name stored in the DB.
+        // This handles typos, partial names, etc. by using fuzzy OR-matching
+        // to find the best-matching course, then using its exact name everywhere.
+        $resolvedTopic = null;
         if ($request->filled('topic')) {
-            $query->where('topic', 'like', '%' . $request->topic . '%');
-        }
-        if ($request->filled('difficulty')) {
-            $query->where('difficulty', $request->difficulty);
-        }
+            $checkQuery = QuestionBank::where('is_active', true);
+            $this->applyTopicSearch($checkQuery, $request->topic);
+            $resolvedTopic = $checkQuery->value('topic'); // get the actual DB topic name
 
-        $questions = $query->inRandomOrder()->limit($requestedCount)->get(['id']);
-        
-        $count = $questions->count();
-        $topic = $request->input('topic', 'General Knowledge');
-        $difficulty = $request->input('difficulty', 'medium');
-        $level = $user->level ?? '100';
-
-        if ($count < $requestedCount) {
-            $deficit = $requestedCount - $count;
-            
-            // Always use all 4 types
-            $types = ['mcq', 'fill_in', 'short_answer', 'theory'];
-
-            $aiService = new AiQuestionGenerationService();
-            $generated = $aiService->generateFromTopic(
-                $topic,
-                $deficit,
-                $types,
-                $difficulty,
-                $deficit * 2, // 2 marks per question
-                $level
-            );
-            
-            foreach ($generated as $g) {
-                // Save to QuestionBank
-                $newQb = QuestionBank::create([
-                    'lecturer_id' => $user->id, // Default to current user since it's an auto-generated practice question
-                    'topic' => $topic,
-                    'question_text' => $g['question_text'],
-                    'question_type' => $g['question_type'],
-                    'difficulty' => $g['difficulty'],
-                    'correct_answer' => $g['correct_answer'],
-                    'model_answer' => $g['model_answer'],
-                    'marking_scheme' => $g['marking_scheme'],
-                    'suggested_marks' => $g['suggested_marks'],
-                    'generated_by_ai' => true,
-                    'status' => 'approved',
-                    'visibility' => 'personal',
-                    'created_by' => $user->id,
-                ]);
-
-                // Create options if MCQ
-                if ($g['question_type'] === 'mcq' && isset($g['options'])) {
-                    foreach ($g['options'] as $opt) {
-                        QuestionOption::create([
-                            'question_bank_id' => $newQb->id,
-                            'option_key' => $opt['key'],
-                            'option_text' => $opt['text'],
-                            'is_correct' => $opt['is_correct'],
-                        ]);
-                    }
+            if (!$resolvedTopic) {
+                $msg = 'This course is not available in our question bank. Please try a different course.';
+                if ($request->wantsJson()) {
+                    return response()->json(['error' => $msg], 400);
                 }
-                
-                $questions->push($newQb);
+                return back()->with('error', $msg);
             }
         }
-        
+
+        $questionTypeParam = $request->input('question_type', 'all');
+        $types = [];
+        switch ($questionTypeParam) {
+            case 'mcqs':
+                $types = ['mcq'];
+                break;
+            case 'theory':
+                $types = ['theory'];
+                break;
+            case 'fill_in':
+                $types = ['fill_in'];
+                break;
+            case 'mcqs_theory':
+                $types = ['mcq', 'theory'];
+                break;
+            case 'mcqs_fill_in':
+                $types = ['mcq', 'fill_in'];
+                break;
+            case 'theory_fill_in':
+                $types = ['theory', 'fill_in'];
+                break;
+            case 'all':
+            default:
+                $types = ['mcq', 'theory', 'fill_in', 'short_answer'];
+                break;
+        }
+
+        // ── Seen question IDs for this user (from the dedicated tracking table) ──
+        // Only questions the user has actually *completed* are in this table.
+        // Abandoned sessions do NOT appear here.
+        $seenQuestionIds = UserSeenQuestion::where('user_id', $user->id)
+            ->pluck('question_id')
+            ->toArray();
+
+        // ── Step 1: Unseen questions of the selected type (highest priority) ──
+        $unseenQuery = QuestionBank::query()
+            ->where('is_active', true)
+            ->whereIn('question_type', $types);
+        if ($resolvedTopic) {
+            $unseenQuery->where('topic', $resolvedTopic);
+        }
+        if (!empty($seenQuestionIds)) {
+            $unseenQuery->whereNotIn('id', $seenQuestionIds);
+        }
+        $unseenQuestions = $unseenQuery->inRandomOrder()->limit($requestedCount)->get(['id']);
+
+        // ── Step 2: Backfill with least-recently-seen questions (round-robin, same type) ──
+        // Order: fewest times seen → least recently seen. Never random repeat.
+        $collectedIds = $unseenQuestions->pluck('id')->toArray();
+        $deficit = $requestedCount - count($collectedIds);
+        $seenQuestions = collect();
+        if ($deficit > 0 && !empty($seenQuestionIds)) {
+            $seenQuery = QuestionBank::query()
+                ->where('is_active', true)
+                ->whereIn('question_type', $types)
+                ->whereIn('id', $seenQuestionIds)
+                ->whereNotIn('id', $collectedIds)
+                // Join to get ordering data from user_seen_questions
+                ->join('user_seen_questions as usq', function ($join) use ($user) {
+                    $join->on('question_bank.id', '=', 'usq.question_id')
+                         ->where('usq.user_id', '=', $user->id);
+                })
+                ->orderBy('usq.seen_count', 'asc')       // least seen first
+                ->orderBy('usq.last_seen_at', 'asc');    // oldest seen first
+            if ($resolvedTopic) {
+                $seenQuery->where('question_bank.topic', $resolvedTopic);
+            }
+            $seenQuestions = $seenQuery->limit($deficit)->get(['question_bank.id']);
+        }
+
+        // ── Step 3: Still not enough? Expand beyond topic (type still respected) ──
+        $collectedIds = array_merge($collectedIds, $seenQuestions->pluck('id')->toArray());
+        $stillNeeded = $requestedCount - count($collectedIds);
+        $extraQuestions = collect();
+        if ($stillNeeded > 0 && $resolvedTopic) {
+            // Try unseen questions from the same type, any topic
+            $extraUnseenQuery = QuestionBank::query()
+                ->where('is_active', true)
+                ->whereIn('question_type', $types)
+                ->whereNotIn('id', array_merge($collectedIds, $seenQuestionIds));
+            $extraUnseen = $extraUnseenQuery->inRandomOrder()->limit($stillNeeded)->get(['id']);
+
+            $extraQuestions = $extraQuestions->concat($extraUnseen);
+            $stillNeeded -= $extraUnseen->count();
+
+            // Final fallback: least-recently-seen from any topic (type still respected)
+            if ($stillNeeded > 0 && !empty($seenQuestionIds)) {
+                $allCollected = array_merge($collectedIds, $extraUnseen->pluck('id')->toArray());
+                $extraSeenQuery = QuestionBank::query()
+                    ->where('is_active', true)
+                    ->whereIn('question_type', $types)
+                    ->whereIn('id', $seenQuestionIds)
+                    ->whereNotIn('id', $allCollected)
+                    ->join('user_seen_questions as usq', function ($join) use ($user) {
+                        $join->on('question_bank.id', '=', 'usq.question_id')
+                             ->where('usq.user_id', '=', $user->id);
+                    })
+                    ->orderBy('usq.seen_count', 'asc')
+                    ->orderBy('usq.last_seen_at', 'asc');
+                $extraQuestions = $extraQuestions->concat(
+                    $extraSeenQuery->limit($stillNeeded)->get(['question_bank.id'])
+                );
+            }
+        }
+
+        // Merge all collected questions
+        $questions = $unseenQuestions->concat($seenQuestions)->concat($extraQuestions);
+
+        $count = $questions->count();
+        $topic = $resolvedTopic ?? $request->input('topic', 'General Knowledge');
+        $level = $user->level ?? '100';
+
         $questions = $questions->shuffle();
         
-        if ($questions->count() < 1) {
-            $msg = 'Unable to generate questions at this time. Please try another topic.';
+        $actualCount = $questions->count();
+        if ($actualCount < 1) {
+            $msg = 'The questions are not available, please try another course.';
             if ($request->wantsJson()) {
                 return response()->json(['error' => $msg], 400);
             }
             return back()->with('error', $msg);
         }
 
-        // Calculate exact cost dynamically based on question types
+        // Calculate exact cost dynamically based on actual returned questions
+        $freeQuestionsUsed = min($actualCount, $freeAvailable);
+        $paidQuestionsCount = max(0, $actualCount - $freeAvailable);
+
         $exactTokenCost = 0;
         if ($paidQuestionsCount > 0) {
-            // Fetch the specific questions that were generated/returned
+            // Fetch the specific questions that were returned
             $fetchedQuestions = QuestionBank::whereIn('id', $questions->pluck('id'))->get();
             
-            // To be perfectly fair, we assume the first $freeAvailable questions are the free ones.
-            // But we don't care which ones are free, we just take $paidQuestionsCount randomly or just count total and prorate? 
-            // Or we just calculate the cost of all questions, and then only charge for a proportional amount? 
-            // Actually, we can just sort by type cost, or sort randomly. Let's just take the first $paidQuestionsCount.
             $paidQuestions = $fetchedQuestions->take($paidQuestionsCount);
             
             foreach ($paidQuestions as $q) {
@@ -130,10 +235,10 @@ class StudentPracticeController extends Controller
             
             // Deduct exactly the calculated tokens
             $user->tokens -= $exactTokenCost;
-            $user->free_questions_remaining = 0;
+            $user->free_questions_remaining -= $freeQuestionsUsed;
         } else {
             // They didn't pay anything, just subtract from free remaining
-            $user->free_questions_remaining -= $requestedCount;
+            $user->free_questions_remaining -= $freeQuestionsUsed;
         }
 
         $user->save();
@@ -222,7 +327,7 @@ class StudentPracticeController extends Controller
         }
 
         return [
-            'score' => $total > 0 ? ($score / $total) * 100 : 0,
+            'score' => $total > 0 ? round(($score / $total) * 100) : 0,
             'responses' => $formattedResponses
         ];
     }
@@ -244,26 +349,48 @@ class StudentPracticeController extends Controller
         $graded = $this->gradeWithAiSynchronously($questions, $responses);
 
         $session->update([
-            'responses' => $graded['responses'],
-            'score' => $graded['score'],
+            'responses'    => $graded['responses'],
+            'score'        => $graded['score'],
             'completed_at' => now(),
         ]);
 
+        // ── Record completed questions in the seen-question tracker ──
+        // Use upsert so repeated sessions increment the count instead of failing.
+        $now = now();
+        $upsertRows = array_map(fn ($qId) => [
+            'user_id'      => $session->user_id,
+            'question_id'  => $qId,
+            'seen_count'   => 1,
+            'last_seen_at' => $now,
+            'created_at'   => $now,
+            'updated_at'   => $now,
+        ], $session->questions ?? []);
+
+        if (!empty($upsertRows)) {
+            DB::table('user_seen_questions')->upsert(
+                $upsertRows,
+                ['user_id', 'question_id'],                     // unique keys
+                ['seen_count' => DB::raw('seen_count + 1'),    // increment on conflict
+                 'last_seen_at' => $now,
+                 'updated_at'   => $now]
+            );
+        }
+
         if ($request->wantsJson()) {
             $questionsForResults = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
-                ->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
-                ->map(function($q) {
-                $q->correct_option = $q->correct_answer;
-                return $q;
-            });
+                ->sortBy(function ($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
+                ->map(function ($q) {
+                    $q->correct_option = $q->correct_answer;
+                    return $q;
+                });
             return response()->json([
                 'practiceSession' => $session,
-                'questions' => $questionsForResults,
-                'message' => 'Practice submitted successfully! Here is your NovaGrade feedback.'
+                'questions'       => $questionsForResults,
+                'message'         => 'Practice submitted successfully! Here is your Assessiva feedback.',
             ]);
         }
 
-        return redirect()->route('student.practice.result', $session->id)->with('success', 'Practice submitted successfully! Here is your NovaGrade feedback.');
+        return redirect()->route('student.practice.result', $session->id)->with('success', 'Practice submitted successfully! Here is your Assessiva feedback.');
     }
 
     private function gradeWithAiSynchronously($questions, $responses)
@@ -326,14 +453,14 @@ class StudentPracticeController extends Controller
                 
                 if (is_array($results)) {
                     $formattedResponses = [];
-                    $score = 0;
+                    $correctCount = 0;
                     $total = count($questions);
                     
                     foreach ($results as $res) {
                         $qId = $res['id'];
                         $isCorrect = $res['is_correct'] ?? false;
-                        $marks = $res['marks'] ?? ($isCorrect ? 1 : 0);
-                        $score += $marks;
+                        $marks = $isCorrect ? 1 : 0;
+                        $correctCount += $marks;
                         
                         $formattedResponses[$qId] = [
                             'user_answer' => $responses[$qId] ?? null,
@@ -345,7 +472,7 @@ class StudentPracticeController extends Controller
                     }
                     
                     return [
-                        'score' => $total > 0 ? ($score / $total) * 100 : 0,
+                        'score' => $total > 0 ? round(($correctCount / $total) * 100) : 0,
                         'responses' => $formattedResponses
                     ];
                 }

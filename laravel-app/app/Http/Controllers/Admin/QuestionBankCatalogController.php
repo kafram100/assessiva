@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\QuestionBank;
 use App\Models\User;
+use App\Models\Course;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -57,15 +58,8 @@ class QuestionBankCatalogController extends Controller
             });
         }
 
-        if ($request->filled('topic')) {
-            $topic = (string) $request->input('topic');
-            if ($topic === '__uncategorized__') {
-                $query->where(function (Builder $q): void {
-                    $q->whereNull('topic')->orWhereRaw("TRIM(topic) = ''");
-                });
-            } else {
-                $query->where('topic', $topic);
-            }
+        if ($request->filled('course_id')) {
+            $query->where('course_id', $request->input('course_id'));
         }
 
         if ($request->filled('is_active')) {
@@ -77,8 +71,13 @@ class QuestionBankCatalogController extends Controller
             $query->where('question_type', (string) $request->input('question_type'));
         }
 
-        $query->orderByRaw("CASE WHEN topic IS NULL OR TRIM(topic) = '' THEN 1 ELSE 0 END")
-            ->orderBy('topic')
+        if (!$request->filled('search') && !$request->filled('course_id')) {
+            $query->whereRaw('1 = 0');
+        }
+
+        $query->select('question_bank.*')
+            ->selectRaw('ROW_NUMBER() OVER(PARTITION BY course_id ORDER BY id ASC) as question_number')
+            ->orderByRaw('(SELECT name FROM courses WHERE courses.id = question_bank.course_id)')
             ->orderByDesc('updated_at');
 
         $questions = $query
@@ -88,8 +87,9 @@ class QuestionBankCatalogController extends Controller
         return Inertia::render('Admin/QuestionBankCatalog/Index', [
             'questions' => $questions,
             'topicOptions' => $topicOptions,
-            'filters' => $request->only(['search', 'topic', 'is_active', 'question_type']),
-            'scope' => $user->isAdmin() ? 'admin' : 'hod',
+            'filters' => $request->only(['search', 'course_id', 'is_active', 'question_type']),
+            'scope' => 'admin',
+            'courses' => \App\Models\Course::query()->orderBy('code')->get(['id', 'code', 'name']),
         ]);
     }
 
@@ -100,13 +100,7 @@ class QuestionBankCatalogController extends Controller
     {
         $query = QuestionBank::query();
 
-        if ($user->isHod()) {
-            $deptId = (int) $user->department_id;
-            $query->where(function (Builder $q) use ($deptId): void {
-                $q->where('department_id', $deptId)
-                    ->orWhereNull('department_id');
-            });
-        }
+
 
         return $query;
     }
@@ -447,5 +441,76 @@ class QuestionBankCatalogController extends Controller
 
             return back()->withErrors(['ai' => 'Failed to generate questions: '.$e->getMessage()]);
         }
+    }
+
+    public function edit(Request $request, QuestionBank $question)
+    {
+        $user = $request->user();
+
+        $question->load('options', 'course');
+        
+        $courses = Course::query()
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+
+        return Inertia::render('Admin/QuestionBankCatalog/Edit', [
+            'question' => $question,
+            'courses' => $courses,
+        ]);
+    }
+
+    public function update(Request $request, QuestionBank $question)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'course_id' => 'required|exists:courses,id',
+            'topic' => 'nullable|string',
+            'level' => 'nullable|string',
+            'question_text' => 'required|string',
+            'question_type' => 'required|in:mcq,theory,short_answer,fill_in',
+            'difficulty' => 'required|in:easy,medium,hard',
+            'correct_answer' => 'nullable|string',
+            'model_answer' => 'nullable|string',
+            'options' => 'nullable|array',
+            'options.*.key' => 'required|string|max:1',
+            'options.*.text' => 'required|string',
+            'options.*.is_correct' => 'boolean',
+        ]);
+
+        $question->update([
+            'course_id' => $validated['course_id'],
+            'topic' => $validated['topic'] ?? null,
+            'level' => $validated['level'] ?? null,
+            'question_text' => $validated['question_text'],
+            'question_type' => $validated['question_type'],
+            'difficulty' => $validated['difficulty'],
+            'correct_answer' => $validated['correct_answer'] ?? null,
+            'model_answer' => $validated['model_answer'] ?? null,
+        ]);
+
+        if ($validated['question_type'] === 'mcq') {
+            $question->options()->delete();
+            if (!empty($validated['options'])) {
+                foreach ($validated['options'] as $opt) {
+                    $question->options()->create([
+                        'option_key' => strtoupper(substr((string)$opt['key'], 0, 1)),
+                        'option_text' => $opt['text'],
+                        'is_correct' => (bool) ($opt['is_correct'] ?? false),
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('admin.question-bank-catalog.index')->with('success', 'Question updated successfully.');
+    }
+
+    public function destroy(Request $request, QuestionBank $question)
+    {
+        $user = $request->user();
+
+        $question->update(['is_active' => false]);
+
+        return back()->with('success', 'Question archived successfully.');
     }
 }

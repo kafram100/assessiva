@@ -3,7 +3,7 @@ export default function ApplicationLogo(props) {
         <img
             {...props}
             src="/logo.png"
-            alt="NovaGrade Logo"
+            alt="Assessiva Logo"
             className={`object-cover rounded-xl ${props.className || ''}`}
         />
     );

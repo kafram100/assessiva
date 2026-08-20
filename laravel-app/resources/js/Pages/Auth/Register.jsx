@@ -26,6 +26,13 @@ export default function Register() {
         };
     }, []);
 
+    // If backend validation returns errors for fields on step 1, jump back so the user can see them.
+    useEffect(() => {
+        if (errors.name || errors.email || errors.phone || errors.educational_level) {
+            setStep(1);
+        }
+    }, [errors]);
+
     const validateField = (field, value) => {
         let error = '';
         switch (field) {

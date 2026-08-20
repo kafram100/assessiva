@@ -1,48 +1,45 @@
 import { motion } from 'framer-motion';
 
 const steps = [
-    { n: '01', title: 'Create Account', body: 'Sign up and get instant access to your free practice questions tier.' },
-    { n: '02', title: 'Practice & Test', body: 'Generate a practice test pulled from our extensive exam databank.' },
-    { n: '03', title: 'Get AI Feedback', body: 'Submit your answers and let NovaGrade analyze your mistakes step-by-step.' },
+    { n: '1', title: 'Create Account', body: 'Sign up and get instant access to your free practice questions tier.' },
+    { n: '2', title: 'Practice & Test', body: 'Generate a practice test pulled from our extensive exam databank.' },
+    { n: '3', title: 'Get AI Feedback', body: 'Submit your answers and let Assessiva analyze your mistakes step-by-step.' },
 ];
 
 export default function HowItWorksSection() {
     return (
-        <section id="how-it-works" className="relative z-10 border-t border-theme-line bg-[color:var(--mesh-bg)] px-4 py-24 sm:px-6 lg:px-8">
+        <section id="how-it-works" className="relative z-10 px-4 py-32 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
             <div className="mx-auto max-w-7xl">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: '-80px' }}
-                    className="max-w-2xl"
+                    className="mx-auto max-w-2xl text-center"
                 >
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ai-glow/90">How it works</p>
-                    <h2 className="mt-3 font-display text-3xl font-bold text-theme-strong sm:text-4xl">Your path to exam success</h2>
+                    <h2 className="font-display text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+                        Your path to exam success
+                    </h2>
+                    <p className="mt-4 text-lg text-slate-500 dark:text-slate-400">
+                        Three simple steps to build your confidence and ace your next test.
+                    </p>
                 </motion.div>
 
-                <div className="relative mt-16">
-                    <div className="pointer-events-none absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-transparent via-ai-accent/40 to-transparent lg:block" />
-
-                    <div className="grid gap-8 lg:grid-cols-3">
+                <div className="relative mt-24">
+                    <div className="grid gap-16 lg:grid-cols-3 lg:gap-12">
                         {steps.map((s, i) => (
                             <motion.div
                                 key={s.n}
                                 initial={{ opacity: 0, y: 24 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true, margin: '-40px' }}
-                                transition={{ delay: 0.08 * i, duration: 0.55 }}
-                                className="relative"
+                                transition={{ delay: 0.1 * i, duration: 0.6 }}
+                                className="relative flex flex-col items-center text-center lg:items-start lg:text-left"
                             >
-                                {i < steps.length - 1 ? (
-                                    <div className="absolute left-1/2 top-10 hidden h-full w-px -translate-x-1/2 bg-gradient-to-b from-ai-accent/50 to-transparent lg:left-full lg:top-5 lg:h-px lg:w-full lg:translate-x-0 lg:bg-gradient-to-r" />
-                                ) : null}
-                                <div className="flex flex-col items-center text-center lg:block lg:text-left">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-ai-accent/40 bg-ai-accent/15 font-mono text-xs font-bold text-ai-glow shadow-[0_0_24px_rgba(0,163,255,0.25)]">
-                                        {s.n}
-                                    </div>
-                                    <h3 className="mt-4 font-display text-lg font-semibold text-theme-strong">{s.title}</h3>
-                                    <p className="mt-2 text-sm leading-relaxed text-theme-dim">{s.body}</p>
+                                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-2xl font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                    {s.n}
                                 </div>
+                                <h3 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">{s.title}</h3>
+                                <p className="mt-4 text-base leading-relaxed text-slate-500 dark:text-slate-400">{s.body}</p>
                             </motion.div>
                         ))}
                     </div>

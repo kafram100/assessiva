@@ -32,39 +32,39 @@
     --mesh-drift-opacity: 0.14;
     --mesh-conic-opacity: 0.85;
     --mesh-grid-line: rgba(0, 123, 255, 0.14);
-    --mesh-blob-1: rgba(0, 123, 255, 0.14);
-    --mesh-blob-2: rgba(45, 212, 191, 0.12);
-    --mesh-particle: rgba(45, 212, 191, 0.55);
+    --mesh-blob-1: rgba(99, 102, 241, 0.14);
+    --mesh-blob-2: rgba(139, 92, 246, 0.12);
+    --mesh-particle: rgba(139, 92, 246, 0.55);
     --mesh-radial-image: radial-gradient(
         ellipse 90% 55% at 50% -15%,
-        rgba(0, 144, 255, 0.14),
+        rgba(99, 102, 241, 0.14),
         transparent
     );
     --mesh-conic-image: conic-gradient(
         from 200deg at 50% 40%,
-        rgba(45, 212, 191, 0.12) 0deg,
+        rgba(139, 92, 246, 0.12) 0deg,
         transparent 130deg,
-        rgba(0, 123, 255, 0.06) 260deg,
+        rgba(99, 102, 241, 0.06) 260deg,
         transparent 360deg
     );
 
     --ring-offset: #f6faff;
-    --ai-primary: hsl(176, 83%, 34%);
-    --ai-accent-line: hsl(174, 61%, 62%);
+    --ai-primary: hsl(255, 75%, 55%);
+    --ai-accent-line: hsl(220, 83%, 65%);
 
     --btn-primary-bg: linear-gradient(
         135deg,
-        hsl(176, 75%, 36%) 0%,
-        hsl(176, 83%, 34%) 55%,
-        hsl(176, 100%, 21%) 100%
+        hsl(255, 83%, 65%) 0%,
+        hsl(255, 83%, 60%) 55%,
+        hsl(255, 100%, 40%) 100%
     );
 
     --shadow-card: 0 1px 0 rgba(15, 23, 42, 0.06),
         0 20px 40px rgba(15, 23, 42, 0.08);
     --shadow-card-hover: 0 1px 0 rgba(15, 23, 42, 0.08),
         0 24px 48px rgba(15, 23, 42, 0.12);
-    --shadow-glow: 0 0 40px -12px rgba(0, 144, 255, 0.25),
-        0 0 80px -20px rgba(45, 212, 191, 0.15);
+    --shadow-glow: 0 0 40px -12px rgba(99, 102, 241, 0.25),
+        0 0 80px -20px rgba(139, 92, 246, 0.15);
 
     --sidebar-from: #f8fbff;
     --sidebar-to: #eef6ff;
@@ -73,7 +73,7 @@
     --sidebar-link-hover-bg: rgba(0, 144, 255, 0.08);
     --sidebar-link-hover-fg: #0b1220;
     --sidebar-link-active-bg: rgba(0, 144, 255, 0.12);
-    --sidebar-link-active-border: #2dd4bf;
+    --sidebar-link-active-border: #8b5cf6;
     --sidebar-section: #64748b;
     --sidebar-title: #0b1220;
 
@@ -85,7 +85,7 @@
     --input-border: rgba(15, 23, 42, 0.1);
     --input-text: #0b1220;
     --input-placeholder: #64748b;
-    --input-focus-ring: rgba(45, 212, 191, 0.45);
+    --input-focus-ring: rgba(139, 92, 246, 0.45);
 
     --color-success: #16a34a;
     --color-warning: #f59e0b;
@@ -102,13 +102,13 @@
     --modal-body-bg: rgba(255, 255, 255, 0.98);
     --modal-surface-bg: rgba(248, 250, 252, 0.98);
 
-    --mesh-particle-glow: rgba(45, 212, 191, 0.45);
+    --mesh-particle-glow: rgba(139, 92, 246, 0.45);
 
     --landing-header-bg: rgba(246, 250, 255, 0.88);
 
     --gradient-text-from: hsl(180, 4%, 11%);
-    --gradient-text-via: hsl(176, 83%, 34%);
-    --gradient-text-to: hsl(176, 100%, 21%);
+    --gradient-text-via: hsl(255, 75%, 55%);
+    --gradient-text-to: hsl(220, 83%, 50%);
 }
 
 html {
@@ -144,39 +144,39 @@ html.dark {
     --mesh-drift-opacity: 0.12;
     --mesh-conic-opacity: 0.7;
     --mesh-grid-line: rgba(0, 163, 255, 0.35);
-    --mesh-blob-1: rgba(0, 163, 255, 0.2);
-    --mesh-blob-2: rgba(94, 234, 212, 0.15);
-    --mesh-particle: rgba(94, 234, 212, 0.6);
+    --mesh-blob-1: rgba(99, 102, 241, 0.2);
+    --mesh-blob-2: rgba(139, 92, 246, 0.15);
+    --mesh-particle: rgba(139, 92, 246, 0.6);
     --mesh-radial-image: radial-gradient(
         ellipse 80% 50% at 50% -20%,
-        rgba(0, 163, 255, 0.12),
+        rgba(99, 102, 241, 0.12),
         transparent
     );
     --mesh-conic-image: conic-gradient(
         from 180deg at 50% 50%,
-        rgba(94, 234, 212, 0.06) 0deg,
+        rgba(139, 92, 246, 0.06) 0deg,
         transparent 120deg,
-        rgba(0, 163, 255, 0.05) 240deg,
+        rgba(99, 102, 241, 0.05) 240deg,
         transparent 360deg
     );
 
     --ring-offset: #050816;
-    --ai-primary: hsl(175, 48%, 50%);
-    --ai-accent-line: hsl(174, 61%, 62%);
+    --ai-primary: hsl(255, 85%, 65%);
+    --ai-accent-line: hsl(220, 85%, 70%);
 
     --btn-primary-bg: linear-gradient(
         135deg,
-        hsl(175, 48%, 50%) 0%,
-        hsl(176, 83%, 34%) 55%,
-        hsl(176, 100%, 26%) 100%
+        hsl(255, 85%, 70%) 0%,
+        hsl(255, 85%, 65%) 55%,
+        hsl(255, 90%, 55%) 100%
     );
 
     --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06),
         0 20px 60px -28px rgba(0, 0, 0, 0.65);
     --shadow-card-hover: 0 0 0 1px rgba(255, 255, 255, 0.1),
-        0 24px 70px -24px rgba(0, 163, 255, 0.12);
-    --shadow-glow: 0 0 48px -10px rgba(0, 163, 255, 0.35),
-        0 0 96px -24px rgba(94, 234, 212, 0.12);
+        0 24px 70px -24px rgba(99, 102, 241, 0.12);
+    --shadow-glow: 0 0 48px -10px rgba(99, 102, 241, 0.35),
+        0 0 96px -24px rgba(139, 92, 246, 0.2);
 
     --sidebar-from: #071120;
     --sidebar-to: #050816;
@@ -185,7 +185,7 @@ html.dark {
     --sidebar-link-hover-bg: rgba(255, 255, 255, 0.05);
     --sidebar-link-hover-fg: #ffffff;
     --sidebar-link-active-bg: rgba(255, 255, 255, 0.06);
-    --sidebar-link-active-border: #5eead4;
+    --sidebar-link-active-border: #a78bfa;
     --sidebar-section: #7e8aa3;
     --sidebar-title: #ffffff;
 
@@ -197,7 +197,7 @@ html.dark {
     --input-border: rgba(255, 255, 255, 0.08);
     --input-text: #ffffff;
     --input-placeholder: #7e8aa3;
-    --input-focus-ring: rgba(0, 163, 255, 0.45);
+    --input-focus-ring: rgba(99, 102, 241, 0.45);
 
     --meter-track: #1e293b;
 
@@ -210,13 +210,13 @@ html.dark {
     --modal-body-bg: rgba(7, 17, 32, 0.98);
     --modal-surface-bg: rgba(12, 24, 44, 0.98);
 
-    --mesh-particle-glow: rgba(94, 234, 212, 0.8);
+    --mesh-particle-glow: rgba(139, 92, 246, 0.8);
 
     --landing-header-bg: rgba(5, 8, 22, 0.72);
 
     --gradient-text-from: hsl(0, 20%, 99%);
-    --gradient-text-via: hsl(175, 48%, 50%);
-    --gradient-text-to: hsl(176, 83%, 34%);
+    --gradient-text-via: hsl(255, 85%, 65%);
+    --gradient-text-to: hsl(220, 85%, 60%);
 }
 
 @layer base {

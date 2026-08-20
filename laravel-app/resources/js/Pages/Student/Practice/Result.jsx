@@ -32,9 +32,9 @@ export default function Result({ practiceSession, questions }) {
                 </div>
 
                 <div className="mb-12">
-                    <h2 className="mb-4 text-xl font-bold text-theme-strong">NovaGrade Feedback & Analysis</h2>
+                    <h2 className="mb-4 text-xl font-bold text-theme-strong">Assessiva Feedback & Analysis</h2>
                     <div className="rounded-2xl border border-theme-line bg-theme-elevated p-6 text-theme-dim">
-                        Your answers have been graded. Review the detailed NovaGrade feedback for each question below.
+                        Your answers have been graded. Review the detailed Assessiva feedback for each question below.
                     </div>
                 </div>
 
@@ -69,7 +69,7 @@ export default function Result({ practiceSession, questions }) {
                                 </div>
                                 {response?.ai_feedback && (
                                     <div className="mt-4 rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 text-sm text-theme-strong">
-                                        <div className="font-semibold text-violet-600 dark:text-violet-400 mb-1">NovaGrade Feedback</div>
+                                        <div className="font-semibold text-violet-600 dark:text-violet-400 mb-1">Assessiva Feedback</div>
                                         {response.ai_feedback}
                                     </div>
                                 )}

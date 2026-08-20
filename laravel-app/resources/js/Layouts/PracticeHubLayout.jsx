@@ -29,7 +29,7 @@ export default function PracticeHubLayout({ children }) {
                         <ApplicationLogo className="h-8 sm:h-9 w-auto fill-ai-accent" />
                         <div className="hidden sm:block">
                             <div className="font-display text-base sm:text-lg font-bold text-theme-strong">
-                                {auth.user?.role === 'student' ? 'NovaGrade Practice' : 'NovaGrade Practice Hub'}
+                                {auth.user?.role === 'student' ? 'Assessiva Practice' : 'Assessiva Practice Hub'}
                             </div>
                         </div>
                     </Link>
@@ -44,7 +44,7 @@ export default function PracticeHubLayout({ children }) {
                                         {auth.user.free_questions_remaining > 0 && (
                                             <button
                                                 onClick={() => setShowFreeTokensModal(true)}
-                                                className="hidden sm:flex items-center gap-1.5 rounded-full bg-ai-accent/10 px-3 py-1.5 text-sm font-medium text-ai-accent transition-all hover:bg-ai-accent/20"
+                                                className="flex items-center gap-1.5 rounded-full bg-ai-accent/10 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-ai-accent transition-all hover:bg-ai-accent/20"
                                                 title="Free Questions Available"
                                             >
                                                 <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -53,11 +53,11 @@ export default function PracticeHubLayout({ children }) {
                                         )}
                                         <Link
                                             href={route('student.wallet')}
-                                            className="hidden sm:flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-500 transition-all hover:bg-amber-500/20"
-                                            title="Tokens"
+                                            className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-500/10 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-amber-500 transition-all hover:bg-amber-500/20"
+                                            title="Buy Tokens"
                                         >
                                             <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                            <span className="hidden sm:inline-block">Tokens:</span> <span className="font-bold">{auth.user.tokens}</span>
+                                            <span className="hidden sm:inline">Tokens:</span> <span className="font-bold">{auth.user.tokens}</span>
                                         </Link>
                                     </>
                                 )}
@@ -70,12 +70,19 @@ export default function PracticeHubLayout({ children }) {
                                                 className="inline-flex items-center gap-2 rounded-full sm:border sm:border-theme-line sm:bg-theme-highlight sm:pl-2 sm:pr-3 sm:py-1.5 text-sm font-medium text-theme-strong transition duration-150 ease-out hover:border-ai-accent/30 focus:outline-none"
                                             >
                                                 {auth.user.profile_picture_url ? (
-                                                    <img src={auth.user.profile_picture_url} alt={auth.user.name} className="h-8 w-8 sm:h-7 sm:w-7 shrink-0 aspect-square rounded-full object-cover" />
-                                                ) : (
-                                                    <div className="flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-xs font-bold text-white">
-                                                        {(auth.user.name).slice(0, 1).toUpperCase()}
-                                                    </div>
-                                                )}
+                                                    <img
+                                                        src={auth.user.profile_picture_url}
+                                                        alt={auth.user.name}
+                                                        className="h-8 w-8 sm:h-7 sm:w-7 shrink-0 aspect-square rounded-full object-cover"
+                                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling && (e.target.nextElementSibling.style.display = 'flex'); }}
+                                                    />
+                                                ) : null}
+                                                <div
+                                                    className="h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-xs font-bold text-white"
+                                                    style={{ display: auth.user.profile_picture_url ? 'none' : 'flex' }}
+                                                >
+                                                    {(auth.user.name).slice(0, 1).toUpperCase()}
+                                                </div>
                                                 <span className="hidden sm:inline-block">{auth.user.name}</span>
                                                 <svg className="hidden sm:block h-4 w-4 text-theme-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -141,14 +148,14 @@ export default function PracticeHubLayout({ children }) {
                             <span className="text-[10px] font-medium">Home</span>
                         </Link>
                         
+                        <Link href={route('student.wallet')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${route().current('student.wallet') ? 'text-amber-500' : 'text-theme-muted hover:text-theme-strong'}`}>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                            <span className="text-[10px] font-medium">Buy Tokens</span>
+                        </Link>
+                        
                         <Link href={route('student.history')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${route().current('student.history') ? 'text-violet-500' : 'text-theme-muted hover:text-theme-strong'}`}>
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <span className="text-[10px] font-medium">History</span>
-                        </Link>
-                        
-                        <Link href={route('student.wallet')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${route().current('student.wallet') ? 'text-amber-500' : 'text-theme-muted hover:text-theme-strong'}`}>
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                            <span className="text-[10px] font-medium">Wallet</span>
                         </Link>
                         
                         <Link href={route('student.settings')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${route().current('student.settings') ? 'text-violet-500' : 'text-theme-muted hover:text-theme-strong'}`}>

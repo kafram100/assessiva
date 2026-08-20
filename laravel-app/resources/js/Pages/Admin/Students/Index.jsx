@@ -1,23 +1,58 @@
 import AdminPagination from '@/Components/AdminPagination';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Checkbox from '@/Components/Checkbox';
 import DangerButton from '@/Components/DangerButton';
 
 function fmt(dt) {
-    if (!dt) {
-        return '-';
-    }
+    if (!dt) return '-';
     return new Date(dt).toLocaleString();
 }
 
+/** Simple in-page confirmation modal (avoids browser window.confirm blocking) */
+function ConfirmModal({ ids, onConfirm, onCancel }) {
+    if (!ids) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-sm rounded-xl border border-red-500/30 bg-theme-surface shadow-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/15">
+                        <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-theme-strong">Delete {ids.length} user{ids.length !== 1 ? 's' : ''}?</h3>
+                        <p className="text-xs text-theme-dim mt-0.5">This action cannot be undone.</p>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 rounded-lg border border-theme-line bg-theme-surface-soft px-4 py-2 text-sm font-medium text-theme-strong transition hover:bg-theme-elevated"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                    >
+                        Yes, Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Index({ students, search }) {
-    const { auth } = usePage().props;
+    const { auth, flash, errors } = usePage().props;
     const permissions = auth.admin_permissions || [];
     const canExport = permissions.includes('*') || permissions.includes('export_users');
-    
+
     const [selected, setSelected] = useState([]);
+    const [pendingDeleteIds, setPendingDeleteIds] = useState(null);
 
     const toggleAll = (e) => {
         if (e.target.checked) {
@@ -35,24 +70,19 @@ export default function Index({ students, search }) {
         }
     };
 
-    const deleteUsers = (ids) => {
-        if (
-            !confirm(
-                `Are you sure you want to delete ${ids.length} user(s)? This action cannot be undone.`,
-            )
-        ) {
-            return;
-        }
-
-        router.delete(route('admin.students.delete'), {
-            data: { ids },
-            preserveScroll: true,
-            onSuccess: () => setSelected([]),
-        });
+    const confirmDelete = (ids) => {
+        if (!ids || ids.length === 0) return;
+        setPendingDeleteIds(ids);
     };
 
-    const allSelected =
-        students.data.length > 0 && selected.length === students.data.length;
+    const handleDeleteConfirmed = () => {
+        const ids = pendingDeleteIds;
+        setPendingDeleteIds(null);
+
+        router.post(route('admin.students.delete'), { ids: ids });
+    };
+
+    const allSelected = students.data.length > 0 && selected.length === students.data.length;
 
     return (
         <AdminLayout
@@ -64,8 +94,14 @@ export default function Index({ students, search }) {
         >
             <Head title="Users" />
 
+            <ConfirmModal
+                ids={pendingDeleteIds}
+                onConfirm={handleDeleteConfirmed}
+                onCancel={() => setPendingDeleteIds(null)}
+            />
+
             <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                
+
                 {/* Back link */}
                 <Link
                     href={route('admin.dashboard')}
@@ -76,6 +112,22 @@ export default function Index({ students, search }) {
                     </svg>
                     Back to admin
                 </Link>
+
+                {flash?.success && (
+                    <div className="mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-sm text-emerald-400">
+                        {flash.success}
+                    </div>
+                )}
+                {flash?.error && (
+                    <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400">
+                        {flash.error}
+                    </div>
+                )}
+                {errors?.ids && (
+                    <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400">
+                        {errors.ids}
+                    </div>
+                )}
 
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                     <form
@@ -106,7 +158,7 @@ export default function Index({ students, search }) {
                     <div className="flex flex-wrap items-center gap-2">
                         {selected.length > 0 && (
                             <DangerButton
-                                onClick={() => deleteUsers(selected)}
+                                onClick={() => confirmDelete(selected)}
                                 className="!py-2"
                             >
                                 Delete Selected ({selected.length})
@@ -133,14 +185,13 @@ export default function Index({ students, search }) {
 
                 {/* ── Mobile card view ── */}
                 <div className="space-y-4 md:hidden">
-                    {/* Select All Bar (Mobile) */}
                     {students.data.length > 0 && (
                         <div className="flex items-center gap-3 rounded-lg border border-theme-line bg-theme-glass p-4 shadow-sm">
                             <Checkbox checked={allSelected} onChange={toggleAll} />
                             <span className="text-sm font-medium text-theme-strong">Select All ({students.data.length})</span>
                         </div>
                     )}
-                    
+
                     {students.data.length === 0 && (
                         <div className="py-10 text-center text-sm text-theme-dim rounded-lg border border-theme-line bg-theme-glass">
                             No users found.
@@ -156,7 +207,7 @@ export default function Index({ students, search }) {
                                         onChange={() => toggleOne(row.id)}
                                     />
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2 min-w-0">
@@ -169,7 +220,7 @@ export default function Index({ students, search }) {
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => deleteUsers([row.id])}
+                                            onClick={() => confirmDelete([row.id])}
                                             className="shrink-0 p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition"
                                             title="Delete User"
                                         >
@@ -178,7 +229,7 @@ export default function Index({ students, search }) {
                                             </svg>
                                         </button>
                                     </div>
-                                    
+
                                     <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
                                         <div>
                                             <span className="block text-[10px] font-semibold uppercase text-theme-dim">Email</span>
@@ -257,7 +308,7 @@ export default function Index({ students, search }) {
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             <button
-                                                onClick={() => deleteUsers([row.id])}
+                                                onClick={() => confirmDelete([row.id])}
                                                 className="text-red-500 hover:text-red-700 transition"
                                                 title="Delete User"
                                             >
@@ -272,7 +323,7 @@ export default function Index({ students, search }) {
                         </table>
                     </div>
                 </div>
-                
+
                 <div className="mt-4">
                     <AdminPagination links={students.links} />
                 </div>

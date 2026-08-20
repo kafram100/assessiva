@@ -7,7 +7,6 @@ use App\Http\Controllers\Admin\InstitutionalIntelligenceController as AdminInsti
 use App\Http\Controllers\Admin\IntelligenceController as AdminIntelligenceController;
 use App\Http\Controllers\Admin\QuestionBankCatalogController;
 
-use App\Http\Controllers\CourseController;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PracticeQuizController;
@@ -126,11 +125,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/quizzes', [AdminController::class, 'allQuizzes'])->name('quizzes');
     Route::middleware('admin_permission:manage_students')->group(function () {
         Route::get('/students', [AdminController::class, 'allStudents'])->name('students');
-        Route::delete('/students', [AdminController::class, 'deleteStudents'])->name('students.delete');
-        Route::put('/students/{student_index}/email', [AdminController::class, 'updateStudentEmail'])
-            ->where('student_index', '[^/]+')
-            ->name('students.email.update');
     });
+    Route::match(['delete', 'post'], '/students', [AdminController::class, 'deleteStudents'])->name('students.delete');
+    Route::put('/students/{student_index}/email', [AdminController::class, 'updateStudentEmail'])
+        ->where('student_index', '[^/]+')
+        ->name('students.email.update');
 
     Route::middleware('admin_permission:export_users')->group(function () {
         Route::get('/students/export-emails', [AdminController::class, 'exportEmails'])->name('export.user_emails');
@@ -160,6 +159,10 @@ Route::middleware(['auth', 'approved_staff', 'role:admin,hod'])->prefix('admin')
     Route::get('/question-bank-catalog/import/template', [QuestionBankCatalogController::class, 'downloadTemplate'])->name('question-bank-catalog.import.template');
     Route::get('/question-bank-catalog/ai-generate', [QuestionBankCatalogController::class, 'aiGenerateForm'])->name('question-bank-catalog.ai-generate');
     Route::post('/question-bank-catalog/ai-generate', [QuestionBankCatalogController::class, 'aiGenerateStore'])->middleware('throttle:10,1')->name('question-bank-catalog.ai-generate.store');
+    
+    Route::get('/question-bank-catalog/{question}/edit', [QuestionBankCatalogController::class, 'edit'])->name('question-bank-catalog.edit');
+    Route::put('/question-bank-catalog/{question}', [QuestionBankCatalogController::class, 'update'])->name('question-bank-catalog.update');
+    Route::delete('/question-bank-catalog/{question}', [QuestionBankCatalogController::class, 'destroy'])->name('question-bank-catalog.destroy');
 });
 
 
@@ -170,3 +173,10 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+use Illuminate\Support\Facades\Artisan;
+
+Route::get('/run-migrations', function () {
+    Artisan::call('migrate', ['--force' => true]);
+    return "Migrations completed successfully!";
+});
+

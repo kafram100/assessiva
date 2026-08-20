@@ -3,6 +3,16 @@ import React from 'react';
 export default function QuizResult({ practiceSession, questions, onReset }) {
     const { score, responses, ai_feedback } = practiceSession;
 
+    const formatAnswer = (q, ans) => {
+        if (!ans) return null;
+        if (q.question_type === 'mcq') {
+            const letter = String(ans).trim().toUpperCase();
+            const opt = q.options?.find(o => o.option_key?.toUpperCase() === letter);
+            if (opt) return `Option ${letter}: ${opt.option_text}`;
+        }
+        return ans;
+    };
+
     return (
         <div className="mx-auto w-full py-8">
             <div className="mb-10 text-center">
@@ -18,9 +28,9 @@ export default function QuizResult({ practiceSession, questions, onReset }) {
             </div>
 
             <div className="mb-12">
-                <h2 className="mb-4 text-xl font-bold text-theme-strong">NovaGrade Feedback & Analysis</h2>
+                <h2 className="mb-4 text-xl font-bold text-theme-strong">Assessiva Feedback & Analysis</h2>
                 <div className="rounded-2xl border border-theme-line bg-theme-elevated p-6 text-theme-dim">
-                    Your answers have been graded. Review the detailed NovaGrade feedback for each question below.
+                    Your answers have been graded. Review the detailed Assessiva feedback for each question below.
                 </div>
             </div>
 
@@ -46,16 +56,16 @@ export default function QuizResult({ practiceSession, questions, onReset }) {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="rounded-xl bg-theme-surface p-4">
                                     <div className="mb-1 text-xs font-semibold uppercase text-theme-dim">Your Answer</div>
-                                    <div className="font-medium text-theme-strong">{response?.user_answer || <span className="text-theme-muted italic">No answer provided</span>}</div>
+                                    <div className="font-medium text-theme-strong">{formatAnswer(q, response?.user_answer) || <span className="text-theme-muted italic">No answer provided</span>}</div>
                                 </div>
                                 <div className="rounded-xl bg-theme-surface p-4">
                                     <div className="mb-1 text-xs font-semibold uppercase text-theme-dim">Correct Answer</div>
-                                    <div className="font-medium text-theme-strong">{response?.correct_answer}</div>
+                                    <div className="font-medium text-theme-strong">{formatAnswer(q, response?.correct_answer)}</div>
                                 </div>
                             </div>
                             {response?.ai_feedback && (
                                 <div className="mt-4 rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 text-sm text-theme-strong">
-                                    <div className="font-semibold text-violet-600 dark:text-violet-400 mb-1">NovaGrade Feedback</div>
+                                    <div className="font-semibold text-violet-600 dark:text-violet-400 mb-1">Assessiva Feedback</div>
                                     {response.ai_feedback}
                                 </div>
                             )}

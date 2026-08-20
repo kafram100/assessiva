@@ -95,7 +95,7 @@ export default function Index({
 
     const [practiceForm, setPracticeForm] = useState({
         topic: '',
-        difficulty: 'medium',
+        question_type: 'all',
         count: 20
     });
 
@@ -141,6 +141,10 @@ export default function Index({
     };
 
     const startRandomPractice = async () => {
+        if (!practiceForm.topic || !practiceForm.topic.trim()) {
+            setErrorMessage("Please enter a topic before generating practice questions.");
+            return;
+        }
         setIsGenerating(true);
         setErrorMessage(null);
         setQuizResult(null);
@@ -212,25 +216,29 @@ export default function Index({
 
                         <div className="flex flex-col sm:flex-row items-end gap-3">
                             <div className="w-full sm:w-2/5">
-                                <label className="block text-xs font-medium text-theme-dim mb-1">Topic</label>
+                                <label className="block text-xs font-medium text-theme-dim mb-1">Course</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Algebra, Biology..."
-                                    className="w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2.5 text-sm text-theme-strong focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder:text-theme-dim/30"
+                                    placeholder="e.g. Digital Literacy"
+                                    className="w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2.5 text-sm text-theme-strong focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder:text-theme-dim/15"
                                     value={practiceForm.topic}
                                     onChange={e => setPracticeForm(s => ({ ...s, topic: e.target.value }))}
                                 />
                             </div>
                             <div className="w-full sm:w-1/4">
-                                <label className="block text-xs font-medium text-theme-dim mb-1">Difficulty</label>
+                                <label className="block text-xs font-medium text-theme-dim mb-1">Questions Type</label>
                                 <select
                                     className="w-full rounded-xl border border-theme-line bg-theme-elevated px-3 py-2.5 text-sm text-theme-strong focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                                    value={practiceForm.difficulty}
-                                    onChange={e => setPracticeForm(s => ({ ...s, difficulty: e.target.value }))}
+                                    value={practiceForm.question_type}
+                                    onChange={e => setPracticeForm(s => ({ ...s, question_type: e.target.value }))}
                                 >
-                                    <option value="easy">Easy</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="hard">Hard</option>
+                                    <option value="all">All Types</option>
+                                    <option value="mcqs">MCQs only</option>
+                                    <option value="theory">Theory only</option>
+                                    <option value="fill_in">Fill-in only</option>
+                                    <option value="mcqs_theory">MCQs & Theory</option>
+                                    <option value="mcqs_fill_in">MCQs & Fill-in</option>
+                                    <option value="theory_fill_in">Theory & Fill-in</option>
                                 </select>
                             </div>
                             <div className="w-full sm:w-1/4">
@@ -240,9 +248,13 @@ export default function Index({
                                     value={practiceForm.count}
                                     onChange={e => setPracticeForm(s => ({ ...s, count: parseInt(e.target.value) }))}
                                 >
+                                    <option value="1">1</option>
+                                    <option value="3">3</option>
                                     <option value="5">5</option>
                                     <option value="10">10</option>
+                                    <option value="15">15</option>
                                     <option value="20">20</option>
+                                    <option value="25">25</option>
                                     <option value="30">30</option>
                                 </select>
                             </div>

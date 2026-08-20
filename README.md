@@ -1,4 +1,4 @@
-# Novagrade.ai
+# Assessiva.ai
 
 Parallel rebuild of the `student-laravel` exam platform using **Laravel 12**, **Inertia.js**, **React**, **Tailwind CSS**, a **FastAPI** AI microservice, and infrastructure hooks for **PostgreSQL**, **Redis**, **Reverb**, and future **offline sync** APIs.
 

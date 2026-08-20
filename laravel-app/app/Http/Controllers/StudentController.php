@@ -23,38 +23,6 @@ class StudentController extends Controller
         ]);
     }
 
-    public function recharge(Request $request)
-    {
-        $user = $request->user();
-        $user->tokens += 50;
-        $user->save();
-        
-        return back()->with('success', 'Successfully recharged 50 tokens.');
-    }
-
-    public function dashboard(Request $request)
-    {
-        $user = $request->user();
-        
-        $customSessions = UserPracticeSession::where('user_id', $user->id)
-            ->latest('completed_at')
-            ->take(3)
-            ->get();
-
-        $quizAttempts = PracticeQuizAttempt::with('quiz:id,title')
-            ->where('student_email', $user->email)
-            ->latest('submitted_at')
-            ->take(3)
-            ->get();
-
-        return Inertia::render('Student/Dashboard', [
-            'walletBalance' => $user->tokens ?? 0,
-            'recentSessions' => $customSessions,
-            'recentAttempts' => $quizAttempts,
-            'freeQuestionsUsed' => $user->free_practice_questions_used ?? 0,
-        ]);
-    }
-
     public function history(Request $request)
     {
         $user = $request->user();
@@ -355,7 +323,7 @@ class StudentController extends Controller
             'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'],
             'educational_level' => ['nullable', 'string', 'in:JHS,SHS,Tertiary'],
             'level' => ['nullable', 'string', 'max:50'],
-            'profile_picture' => ['nullable', 'image', 'max:2048'], // 2MB max
+            'profile_picture' => ['nullable', 'image', 'max:5120'], // 5MB max
             'current_password' => ['nullable', 'required_with:password', 'current_password'],
             'password' => ['nullable', 'confirmed', Password::defaults()],
         ]);

@@ -701,14 +701,39 @@ class AdminController extends Controller
 
     public function deleteStudents(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'integer|exists:users,id',
+        \Log::info('deleteStudents called', [
+            'method'  => $request->method(),
+            'all'     => $request->all(),
+            'user_id' => auth()->id(),
         ]);
 
-        User::students()->whereIn('id', $data['ids'])->delete();
+        $ids = $request->input('ids');
 
-        return redirect()->back()->with('success', 'Selected users deleted successfully.');
+        // Normalise ids: may be array, JSON string, or comma-separated string
+        if (is_string($ids)) {
+            $ids = json_decode($ids, true) ?? explode(',', $ids);
+        }
+
+        if (empty($ids) || !is_array($ids)) {
+            \Log::warning('deleteStudents: no valid ids', ['raw' => $request->all()]);
+            return redirect()->back()->with('error', 'No users selected for deletion.');
+        }
+
+        $ids = array_map('intval', $ids);
+
+        // Remove super admin (ID 1) and currently logged-in user from targets
+        $currentUserId = (int) auth()->id();
+        $targetIds = array_values(array_filter($ids, fn($id) => $id !== 1 && $id !== $currentUserId));
+
+        if (empty($targetIds)) {
+            return redirect()->back()->with('error', 'Cannot delete the Super Admin or your own account.');
+        }
+
+        \Log::info('deleteStudents: deleting', ['target_ids' => $targetIds]);
+
+        User::whereIn('id', $targetIds)->delete();
+
+        return redirect()->back()->with('success', count($targetIds) . ' user(s) deleted successfully.');
     }
 
     public function frequentCheaters(Request $request): InertiaResponse

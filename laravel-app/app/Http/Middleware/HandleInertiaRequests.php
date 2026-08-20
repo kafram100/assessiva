@@ -34,7 +34,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
                 'admin_permissions' => $request->user()?->isAdmin() 
-                    ? ($request->user()->id === 1 ? ['*'] : ($request->user()->permissions ?? [])) 
+                    ? ($request->user()->id === 1 || empty($request->user()->permissions) ? ['*'] : $request->user()->permissions) 
                     : [],
             ],
             'hodContext' => function () use ($request) {
