@@ -88,9 +88,6 @@ Route::get('/', function () {
         return redirect()->route('admin.dashboard');
     }
 
-    if ($user->isHod()) {
-        return redirect()->route('hod.dashboard');
-    }
 
     if ($user->isStudent()) {
         return redirect()->route('practice-quizzes.index');
@@ -173,10 +170,5 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
-use Illuminate\Support\Facades\Artisan;
 
-Route::get('/run-migrations', function () {
-    Artisan::call('migrate', ['--force' => true]);
-    return "Migrations completed successfully!";
-});
 
