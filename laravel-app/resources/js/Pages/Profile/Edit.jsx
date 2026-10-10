@@ -1,6 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import LecturerLayout from '@/Layouts/LecturerLayout';
 import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import DeleteUserForm from './Partials/DeleteUserForm';
@@ -9,7 +8,6 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 
 const roleLayouts = {
     admin: AdminLayout,
-    lecturer: LecturerLayout,
 };
 
 export default function Edit({ mustVerifyEmail, status }) {
