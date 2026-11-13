@@ -19,6 +19,10 @@ class EnsureRole
             abort(403);
         }
 
+        if ($user->isSuperAdmin()) {
+            return $next($request);
+        }
+
         $allowed = [];
         foreach ($roles as $roleGroup) {
             foreach (explode(',', $roleGroup) as $role) {
