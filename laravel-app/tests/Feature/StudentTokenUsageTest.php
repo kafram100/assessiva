@@ -290,5 +290,57 @@ class StudentTokenUsageTest extends TestCase
             $this->assertStringNotContainsString('Operating Systems', $q['question_text']);
         }
     }
+
+    public function test_questions_associated_by_course_id_are_found_when_topic_is_null(): void
+    {
+        $admin = $this->createStudent();
+        $course = \App\Models\Course::create([
+            'user_id' => $admin->id,
+            'name' => 'Digital Literacy',
+            'code' => 'DL101',
+        ]);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $q = QuestionBank::create([
+                'course_id' => $course->id,
+                'lecturer_id' => $admin->id,
+                'created_by' => $admin->id,
+                'level' => '100',
+                'topic' => null,
+                'question_text' => "Digital Literacy Question {$i}",
+                'question_type' => 'mcq',
+                'difficulty' => 'medium',
+                'correct_answer' => 'A',
+                'suggested_marks' => 1,
+                'is_active' => true,
+            ]);
+            QuestionOption::create([
+                'question_bank_id' => $q->id,
+                'option_key' => 'A',
+                'option_text' => 'Correct Answer',
+                'is_correct' => true,
+            ]);
+            QuestionOption::create([
+                'question_bank_id' => $q->id,
+                'option_key' => 'B',
+                'option_text' => 'Wrong Answer',
+                'is_correct' => false,
+            ]);
+        }
+
+        $student = $this->createStudent(freeQuestions: 15, tokens: 0);
+
+        $response = $this->actingAs($student)
+            ->postJson(route('student.practice.generate'), [
+                'topic' => 'Digital Literacy',
+                'question_type' => 'mcq',
+                'count' => 5,
+            ]);
+
+        $response->assertStatus(200);
+        $questions = $response->json('questions');
+        $this->assertCount(5, $questions);
+        $this->assertNotNull($response->json('practiceSession'));
+    }
 }
 

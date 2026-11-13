@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\QuestionBank;
 use App\Models\QuestionOption;
 use App\Models\UserPracticeSession;
@@ -100,6 +101,36 @@ class StudentPracticeController extends Controller
 
         return $query;
     }
+
+    /**
+     * Scope question queries by matched topic or course IDs.
+     */
+    private function applyTopicOrCourseFilter($query, ?string $topic, array $courseIds = [])
+    {
+        if (empty($topic) && empty($courseIds)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($topic, $courseIds) {
+            $hasCondition = false;
+            if (!empty($courseIds)) {
+                $q->whereIn('question_bank.course_id', $courseIds);
+                $hasCondition = true;
+            }
+            if (!empty($topic)) {
+                if ($hasCondition) {
+                    $q->orWhere('question_bank.topic', $topic)
+                      ->orWhere('question_bank.topic', 'like', '%' . $topic . '%');
+                } else {
+                    $q->where(function ($sub) use ($topic) {
+                        $sub->where('question_bank.topic', $topic)
+                            ->orWhere('question_bank.topic', 'like', '%' . $topic . '%');
+                    });
+                }
+            }
+        });
+    }
+
     public function generate(Request $request)
     {
         $request->validate([
@@ -132,25 +163,38 @@ class StudentPracticeController extends Controller
             $requestedCount = $totalAvailable;
         }
 
-        // Resolve the user's input to the actual course name stored in the DB.
-        // This handles typos, partial names, etc. by using fuzzy OR-matching.
-        // If the topic is not yet in the DB, we retain the user's input for dynamic AI generation.
+        // Resolve the user's input to the actual course name or topic stored in the DB.
+        // This handles matching by Course Name/Code OR by Topic name (with fuzzy OR-matching).
         $resolvedTopic = null;
+        $matchedCourseIds = [];
         if ($request->filled('topic')) {
             $userTopic = trim((string) $request->input('topic'));
-            $checkQuery = QuestionBank::where('is_active', true);
-            $this->applyTopicSearch($checkQuery, $userTopic);
-            $resolvedTopic = $checkQuery->value('topic'); // get actual DB topic name
 
-            if (!$resolvedTopic) {
-                // Secondary check: partial LIKE search
+            // 1. Check if userTopic matches a Course (name or code)
+            $matchedCourses = Course::query()
+                ->where('name', 'like', '%' . $userTopic . '%')
+                ->orWhere('code', 'like', '%' . $userTopic . '%')
+                ->get(['id', 'name', 'code']);
+
+            if ($matchedCourses->isNotEmpty()) {
+                $matchedCourseIds = $matchedCourses->pluck('id')->toArray();
+                $resolvedTopic = $matchedCourses->first()->name;
+            }
+
+            // 2. Also check if userTopic matches a QuestionBank topic
+            $checkQuery = QuestionBank::where('is_active', true);
+            $this->applyTopicSearch($checkQuery, $userTopic, 'question_bank.topic');
+            $dbTopic = $checkQuery->value('topic');
+            if ($dbTopic) {
+                $resolvedTopic = $dbTopic;
+            } elseif (!$resolvedTopic) {
                 $resolvedTopic = QuestionBank::where('is_active', true)
                     ->where('topic', 'like', '%' . $userTopic . '%')
                     ->value('topic');
             }
 
+            // 3. Fallback: if no DB course or topic matched, retain user's input for dynamic AI generation
             if (!$resolvedTopic) {
-                // Topic is new: accept user's topic for dynamic AI generation and retrieval
                 $resolvedTopic = $userTopic;
             }
         }
@@ -205,12 +249,12 @@ class StudentPracticeController extends Controller
             $groupCollected = collect();
             $neededForGroup = $targetPerGroup;
 
-            // 1a: Unseen questions on topic (if topic provided)
+            // 1a: Unseen questions on topic/course
             $unseenQuery = QuestionBank::query()
                 ->where('is_active', true)
                 ->whereIn('question_type', $groupTypes);
-            if ($resolvedTopic) {
-                $unseenQuery->where('topic', $resolvedTopic);
+            if ($resolvedTopic || !empty($matchedCourseIds)) {
+                $this->applyTopicOrCourseFilter($unseenQuery, $resolvedTopic, $matchedCourseIds);
             }
             if (!empty($seenQuestionIds)) {
                 $unseenQuery->whereNotIn('id', $seenQuestionIds);
@@ -219,7 +263,7 @@ class StudentPracticeController extends Controller
             $groupCollected = $groupCollected->concat($unseen);
             $neededForGroup -= $unseen->count();
 
-            // 1b: Seen questions on topic
+            // 1b: Seen questions on topic/course
             if ($neededForGroup > 0 && !empty($seenQuestionIds)) {
                 $seenQuery = QuestionBank::query()
                     ->where('is_active', true)
@@ -232,22 +276,21 @@ class StudentPracticeController extends Controller
                     })
                     ->orderBy('usq.seen_count', 'asc')
                     ->orderBy('usq.last_seen_at', 'asc');
-                if ($resolvedTopic) {
-                    $seenQuery->where('question_bank.topic', $resolvedTopic);
+                if ($resolvedTopic || !empty($matchedCourseIds)) {
+                    $this->applyTopicOrCourseFilter($seenQuery, $resolvedTopic, $matchedCourseIds);
                 }
                 $seen = $seenQuery->limit($neededForGroup)->get(['question_bank.id as id']);
                 $groupCollected = $groupCollected->concat($seen);
                 $neededForGroup -= $seen->count();
             }
 
-            // 1c: If on a specific course and still needed, cycle from the SAME course only!
-            if ($neededForGroup > 0 && $resolvedTopic) {
+            // 1c: If on a specific course/topic and still needed, cycle from the SAME course/topic only!
+            if ($neededForGroup > 0 && ($resolvedTopic || !empty($matchedCourseIds))) {
                 $sameTopicCycle = QuestionBank::query()
                     ->where('is_active', true)
-                    ->where('topic', $resolvedTopic)
-                    ->whereIn('question_type', $groupTypes)
-                    ->inRandomOrder()
-                    ->get(['id']);
+                    ->whereIn('question_type', $groupTypes);
+                $this->applyTopicOrCourseFilter($sameTopicCycle, $resolvedTopic, $matchedCourseIds);
+                $sameTopicCycle = $sameTopicCycle->inRandomOrder()->get(['id']);
                 if ($sameTopicCycle->isNotEmpty()) {
                     while ($neededForGroup > 0) {
                         $take = min($neededForGroup, $sameTopicCycle->count());
@@ -255,7 +298,7 @@ class StudentPracticeController extends Controller
                         $neededForGroup -= $take;
                     }
                 }
-            } elseif ($neededForGroup > 0 && !$resolvedTopic) {
+            } elseif ($neededForGroup > 0 && !$resolvedTopic && empty($matchedCourseIds)) {
                 // If NO course was specified, expand across general topics
                 $extraUnseenQuery = QuestionBank::query()
                     ->where('is_active', true)
@@ -314,6 +357,7 @@ class StudentPracticeController extends Controller
                         if ($existing) continue;
 
                         $newQb = QuestionBank::create([
+                            'course_id' => !empty($matchedCourseIds) ? $matchedCourseIds[0] : null,
                             'topic' => $resolvedTopic,
                             'question_text' => $qText,
                             'question_type' => $gq['question_type'] ?? 'mcq',
@@ -356,8 +400,8 @@ class StudentPracticeController extends Controller
             $poolQuery = QuestionBank::query()
                 ->where('is_active', true)
                 ->whereIn('question_type', $types);
-            if ($resolvedTopic) {
-                $poolQuery->where('topic', $resolvedTopic);
+            if ($resolvedTopic || !empty($matchedCourseIds)) {
+                $this->applyTopicOrCourseFilter($poolQuery, $resolvedTopic, $matchedCourseIds);
             }
             $pool = $poolQuery->whereNotIn('id', $questions->pluck('id')->filter())
                 ->inRandomOrder()
@@ -367,13 +411,13 @@ class StudentPracticeController extends Controller
             $stillNeeded -= $pool->count();
         }
 
-        // ── Step 4: If still needed, cycle from available questions matching topic & type ──
+        // ── Step 4: If still needed, cycle from available questions matching topic/course & type ──
         if ($stillNeeded > 0) {
             $cyclePoolQuery = QuestionBank::query()
                 ->where('is_active', true)
                 ->whereIn('question_type', $types);
-            if ($resolvedTopic) {
-                $cyclePoolQuery->where('topic', $resolvedTopic);
+            if ($resolvedTopic || !empty($matchedCourseIds)) {
+                $this->applyTopicOrCourseFilter($cyclePoolQuery, $resolvedTopic, $matchedCourseIds);
             }
             $cyclePool = $cyclePoolQuery->inRandomOrder()->get(['id']);
             if ($cyclePool->isNotEmpty()) {
@@ -415,25 +459,58 @@ class StudentPracticeController extends Controller
         $freeQuestionsUsed = min($actualCount, $freeAvailable);
         $paidQuestionsCount = max(0, $actualCount - $freeQuestionsUsed);
 
-        // Deduct free questions first, then tokens (ensuring values never drop below 0)
-        $user->free_questions_remaining = max(0, (int) $user->free_questions_remaining - $freeQuestionsUsed);
-        $user->tokens = max(0, (int) $user->tokens - $paidQuestionsCount);
-        $user->save();
+        $session = null;
+        $formattedQuestions = null;
 
-        $optionsOrder = $this->buildOptionsOrder($fetchedQuestionsAll);
+        try {
+            DB::transaction(function () use (
+                $user,
+                $freeQuestionsUsed,
+                $paidQuestionsCount,
+                $topic,
+                $fetchedQuestionsAll,
+                &$session,
+                &$formattedQuestions
+            ) {
+                // Deduct free questions first, then tokens (ensuring values never drop below 0)
+                $user->free_questions_remaining = max(0, (int) $user->free_questions_remaining - $freeQuestionsUsed);
+                $user->tokens = max(0, (int) $user->tokens - $paidQuestionsCount);
+                $user->save();
 
-        $session = UserPracticeSession::create([
-            'user_id' => $user->id,
-            'topic' => $topic,
-            'questions' => $fetchedQuestionsAll->pluck('id')->toArray(),
-            'options_order' => $optionsOrder,
-        ]);
+                $optionsOrder = $this->buildOptionsOrder($fetchedQuestionsAll);
+
+                $sessionData = [
+                    'user_id' => $user->id,
+                    'topic' => $topic,
+                    'questions' => $fetchedQuestionsAll->pluck('id')->toArray(),
+                ];
+
+                // Safely handle options_order if column does not exist on database yet
+                if (\Illuminate\Support\Facades\Schema::hasColumn('user_practice_sessions', 'options_order')) {
+                    $sessionData['options_order'] = $optionsOrder;
+                }
+
+                $session = UserPracticeSession::create($sessionData);
+
+                $formattedQuestions = $fetchedQuestionsAll->map(function ($q) use ($optionsOrder) {
+                    return $this->formatQuestionForClient($q, $optionsOrder[$q->id] ?? null);
+                })->values();
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Practice generation transaction failed: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'topic' => $topic,
+                'exception' => $e,
+            ]);
+
+            $errMsg = 'Failed to generate practice session. Your tokens were not deducted. Please try again.';
+            if ($request->wantsJson()) {
+                return response()->json(['error' => $errMsg], 500);
+            }
+            return back()->with('error', $errMsg);
+        }
 
         if ($request->wantsJson()) {
-            $formattedQuestions = $fetchedQuestionsAll->map(function ($q) use ($optionsOrder) {
-                return $this->formatQuestionForClient($q, $optionsOrder[$q->id] ?? null);
-            })->values();
-
             return response()->json([
                 'practiceSession' => $session,
                 'questions' => $formattedQuestions,

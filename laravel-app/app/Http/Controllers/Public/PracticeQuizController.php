@@ -67,13 +67,18 @@ class PracticeQuizController extends Controller
             'programs' => $this->distinctExamField('target_program'),
             'levels' => $this->distinctExamField('target_level'),
             'topics' => $this->distinctExamField('practice_topic'),
-            'availableCourses' => QuestionBank::query()
-                ->where('is_active', true)
-                ->whereNotNull('topic')
-                ->where('topic', '!=', '')
-                ->distinct()
-                ->orderBy('topic')
-                ->pluck('topic')
+            'availableCourses' => Course::query()
+                ->pluck('name')
+                ->merge(
+                    QuestionBank::query()
+                        ->where('is_active', true)
+                        ->whereNotNull('topic')
+                        ->where('topic', '!=', '')
+                        ->pluck('topic')
+                )
+                ->filter(fn ($v) => !empty(trim((string)$v)))
+                ->unique()
+                ->sort()
                 ->values(),
             'difficulties' => $this->distinctExamField('difficulty_level'),
         ]);
