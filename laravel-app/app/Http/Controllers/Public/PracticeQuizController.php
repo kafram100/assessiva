@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Enums\PracticeVisibility;
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Department;
 use App\Models\Exam;
 use App\Models\PracticeQuizAttempt;
