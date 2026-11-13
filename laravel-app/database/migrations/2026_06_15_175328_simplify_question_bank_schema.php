@@ -20,6 +20,12 @@ return new class extends Migration
             if (Schema::hasColumn('question_bank', 'official_approved_by')) {
                 $table->dropForeign(['official_approved_by']);
             }
+            if (Schema::hasColumn('question_bank', 'lecturer_id') && !Schema::hasIndex('question_bank', ['lecturer_id'])) {
+                $table->index('lecturer_id');
+            }
+            if (Schema::hasColumn('question_bank', 'department_id') && !Schema::hasIndex('question_bank', ['department_id'])) {
+                $table->index('department_id');
+            }
             foreach ([
                 'question_bank_lecturer_id_status_index',
                 'question_bank_department_id_status_index',
