@@ -164,6 +164,9 @@
             color: var(--ai-glow);
             font-size: 1.25rem;
         }
+        .form-control::placeholder {
+            opacity: 0.45;
+        }
     </style>
 </head>
 <body class="bg-light min-vh-100 d-flex align-items-center justify-content-center">

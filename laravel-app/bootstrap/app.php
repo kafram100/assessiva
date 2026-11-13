@@ -26,6 +26,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'student_result_verified' => \App\Http\Middleware\EnsureStudentResultVerified::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'webhook/paystack',
+        ]);
+
+        $trustedProxies = env('TRUSTED_PROXIES');
+        if (!empty($trustedProxies)) {
+            $proxies = array_values(array_filter(array_map('trim', explode(',', $trustedProxies))));
+            if (!empty($proxies) && !in_array('*', $proxies, true)) {
+                $middleware->trustProxies(at: $proxies);
+            }
+        }
+
         $middleware->redirectUsersTo('/');
     })
     ->withExceptions(function (Exceptions $exceptions) {

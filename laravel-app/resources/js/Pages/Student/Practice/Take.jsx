@@ -52,7 +52,7 @@ export default function Take({ practiceSession, questions }) {
 
                 {question && (
                     <div className="rounded-2xl border border-theme-line bg-theme-elevated p-6 shadow-sm">
-                        <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-sky-500">
+                        <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                             {question.q_type.replace('_', ' ')}
                         </div>
                         <div
@@ -73,7 +73,7 @@ export default function Take({ practiceSession, questions }) {
                                             onClick={() => handleResponse(opt.toUpperCase())}
                                             className={`w-full rounded-xl border p-4 text-left transition ${
                                                 isSelected
-                                                    ? 'border-sky-500 bg-sky-500/10 text-sky-100'
+                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700 dark:text-indigo-200'
                                                     : 'border-theme-line bg-theme-surface hover:border-theme-dim'
                                             }`}
                                         >
@@ -90,7 +90,7 @@ export default function Take({ practiceSession, questions }) {
                         {(question.q_type === 'theory' || question.q_type === 'short_answer') && (
                             <div>
                                 <textarea
-                                    className="h-32 w-full rounded-xl border border-theme-line bg-theme-surface p-4 text-theme-strong focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                                    className="h-32 w-full rounded-xl border border-theme-line bg-theme-surface p-4 text-theme-strong focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                                     placeholder="Type your answer here..."
                                     value={data.responses[question.id] || ''}
                                     onChange={(e) => handleResponse(e.target.value)}
@@ -102,7 +102,7 @@ export default function Take({ practiceSession, questions }) {
                             <div>
                                 <input
                                     type="text"
-                                    className="w-full rounded-xl border border-theme-line bg-theme-surface p-4 text-theme-strong focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                                    className="w-full rounded-xl border border-theme-line bg-theme-surface p-4 text-theme-strong focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                                     placeholder="Type your brief answer..."
                                     value={data.responses[question.id] || ''}
                                     onChange={(e) => handleResponse(e.target.value)}
@@ -125,7 +125,7 @@ export default function Take({ practiceSession, questions }) {
                         <button
                             onClick={submitPractice}
                             disabled={processing}
-                            className="rounded-xl bg-sky-600 px-4 sm:px-8 py-2 font-bold text-white hover:bg-sky-500 disabled:opacity-50"
+                            className="rounded-xl bg-indigo-600 px-4 sm:px-8 py-2 font-semibold text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20 disabled:opacity-50"
                         >
                             {processing ? 'Submitting...' : 'Submit Practice'}
                         </button>
@@ -150,9 +150,9 @@ export default function Take({ practiceSession, questions }) {
                                 onClick={() => setCurrentIndex(i)}
                                 className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition ${
                                     isCurrent
-                                        ? 'border-2 border-sky-500 bg-theme-elevated text-sky-400'
+                                        ? 'border-2 border-indigo-500 bg-theme-elevated text-indigo-600 dark:text-indigo-400'
                                         : hasAnswered
-                                        ? 'bg-sky-600/20 text-sky-300'
+                                        ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
                                         : 'bg-theme-surface text-theme-dim hover:bg-theme-line'
                                 }`}
                             >

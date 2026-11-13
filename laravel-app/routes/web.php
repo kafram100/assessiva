@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\AdminUsersController;
-
 use App\Http\Controllers\Admin\InstitutionalIntelligenceController as AdminInstitutionalIntelligenceController;
 use App\Http\Controllers\Admin\IntelligenceController as AdminIntelligenceController;
 use App\Http\Controllers\Admin\QuestionBankCatalogController;
@@ -48,7 +46,7 @@ Route::middleware('student_result_verified')->group(function () {
     Route::get('/student/intelligence/{attempt}/recommendations', [StudentIntelligenceController::class, 'recommendations'])->name('student.intelligence.recommendations');
 });
 
-Route::middleware('auth')->prefix('student')->name('student.')->group(function () {
+Route::middleware(['auth', 'throttle:60,1'])->prefix('student')->name('student.')->group(function () {
     Route::get('/wallet', [StudentController::class, 'wallet'])->name('wallet');
     Route::post('/wallet/topup/initialize', [StudentController::class, 'initializePayment'])->middleware('throttle:10,1')->name('wallet.topup.initialize');
     Route::get('/wallet/topup/callback', [StudentController::class, 'paymentCallback'])->name('wallet.topup.callback');
@@ -56,12 +54,16 @@ Route::middleware('auth')->prefix('student')->name('student.')->group(function (
     Route::get('/settings', [StudentController::class, 'settings'])->name('settings');
     Route::get('/history', [StudentController::class, 'history'])->name('history');
     Route::post('/settings', [StudentController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/avatar', [StudentController::class, 'updateAvatar'])->name('settings.avatar');
+    Route::delete('/settings/avatar', [StudentController::class, 'removeAvatar'])->name('settings.avatar.remove');
     
-    Route::post('/practice/generate', [StudentPracticeController::class, 'generate'])->name('practice.generate');
+    Route::post('/practice/generate', [StudentPracticeController::class, 'generate'])->middleware('throttle:10,1')->name('practice.generate');
     Route::get('/practice/{session}/take', [StudentPracticeController::class, 'take'])->name('practice.take');
-    Route::post('/practice/{session}/submit', [StudentPracticeController::class, 'submit'])->name('practice.submit');
+    Route::post('/practice/{session}/submit', [StudentPracticeController::class, 'submit'])->middleware('throttle:5,1')->name('practice.submit');
     Route::get('/practice/{session}/result', [StudentPracticeController::class, 'result'])->name('practice.result');
 });
+
+Route::post('/webhook/paystack', [StudentController::class, 'paystackWebhook'])->name('webhook.paystack');
 
 Route::middleware('student')->group(function () {
     Route::get('/exam', [StudentExamController::class, 'takeExam'])->name('student.exam');
@@ -79,21 +81,7 @@ Route::middleware('student')->group(function () {
 });
 
 Route::get('/', function () {
-    $user = auth()->user();
-    if (! $user instanceof User) {
-        return Inertia::render('Landing/Home');
-    }
-
-    if ($user->isAdmin()) {
-        return redirect()->route('admin.dashboard');
-    }
-
-
-    if ($user->isStudent()) {
-        return redirect()->route('practice-quizzes.index');
-    }
-
-    return redirect()->route('practice-quizzes.index');
+    return Inertia::render('Landing/Home');
 })->name('home');
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -122,11 +110,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/quizzes', [AdminController::class, 'allQuizzes'])->name('quizzes');
     Route::middleware('admin_permission:manage_students')->group(function () {
         Route::get('/students', [AdminController::class, 'allStudents'])->name('students');
+        Route::match(['delete', 'post'], '/students', [AdminController::class, 'deleteStudents'])->name('students.delete');
+        Route::put('/students/{student_index}/email', [AdminController::class, 'updateStudentEmail'])
+            ->where('student_index', '[^/]+')
+            ->name('students.email.update');
     });
-    Route::match(['delete', 'post'], '/students', [AdminController::class, 'deleteStudents'])->name('students.delete');
-    Route::put('/students/{student_index}/email', [AdminController::class, 'updateStudentEmail'])
-        ->where('student_index', '[^/]+')
-        ->name('students.email.update');
 
     Route::middleware('admin_permission:export_users')->group(function () {
         Route::get('/students/export-emails', [AdminController::class, 'exportEmails'])->name('export.user_emails');
@@ -134,13 +122,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     });
 
     Route::get('/frequent-cheaters', [AdminController::class, 'frequentCheaters'])->name('frequent-cheaters');
-    Route::get('/email-settings', [AdminController::class, 'emailSettings'])->name('email-settings');
-    Route::post('/email-settings', [AdminController::class, 'updateEmailSettings'])->name('email-settings.update');
+    Route::middleware('admin_permission:manage_settings')->group(function () {
+        Route::get('/email-settings', [AdminController::class, 'emailSettings'])->name('email-settings');
+        Route::post('/email-settings', [AdminController::class, 'updateEmailSettings'])->name('email-settings.update');
+    });
     
-    Route::get('/billing-settings', [AdminController::class, 'billingSettings'])->name('billing-settings');
-    Route::post('/billing-settings', [AdminController::class, 'updateBillingSettings'])->name('billing-settings.update');
-
-    Route::resource('admins', AdminUsersController::class)->except(['show']);
+    Route::middleware('admin_permission:manage_billing')->group(function () {
+        Route::get('/billing-settings', [AdminController::class, 'billingSettings'])->name('billing-settings');
+        Route::post('/billing-settings', [AdminController::class, 'updateBillingSettings'])->name('billing-settings.update');
+    });
 
     Route::get('/intelligence/institutional', [AdminIntelligenceController::class, 'institutional'])->name('intelligence.institutional');
     Route::get('/intelligence/at-risk', [AdminIntelligenceController::class, 'atRisk'])->name('intelligence.at-risk');
@@ -149,7 +139,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/intelligence/analytics/generate', [AdminIntelligenceController::class, 'analyticsGenerate'])->name('intelligence.analytics.generate');
 });
 
-Route::middleware(['auth', 'approved_staff', 'role:admin,hod'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'approved_staff', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('admins', \App\Http\Controllers\Admin\AdminUsersController::class)->except(['show']);
+});
+
+Route::middleware(['auth', 'approved_staff', 'admin', 'admin_permission:manage_questions'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/question-bank-catalog', [QuestionBankCatalogController::class, 'index'])->name('question-bank-catalog.index');
     Route::get('/question-bank-catalog/import', [QuestionBankCatalogController::class, 'importForm'])->name('question-bank-catalog.import');
     Route::post('/question-bank-catalog/import', [QuestionBankCatalogController::class, 'importStore'])->name('question-bank-catalog.import.store');
@@ -170,5 +164,21 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/storage/{path}', function (string $path) {
+    $storageRoot = realpath(storage_path('app/public'));
+    $fullPath = realpath(storage_path('app/public/' . $path));
+
+    if (
+        $storageRoot !== false &&
+        $fullPath !== false &&
+        is_file($fullPath) &&
+        strncasecmp($fullPath, $storageRoot . DIRECTORY_SEPARATOR, strlen($storageRoot . DIRECTORY_SEPARATOR)) === 0
+    ) {
+        return response()->file($fullPath);
+    }
+
+    abort(404);
+})->where('path', '.*')->name('storage.fallback');
 
 

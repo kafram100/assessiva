@@ -30,7 +30,7 @@ export default function Index({
     exams,
     schools,
     departments,
-    lecturers,
+    owners,
     schedule,
     filters,
     now,
@@ -39,7 +39,7 @@ export default function Index({
         schedule: schedule ?? 'all',
         school_id: filters?.school_id ?? '',
         department_id: filters?.department_id ?? '',
-        lecturer_id: filters?.lecturer_id ?? '',
+        owner_id: filters?.owner_id ?? '',
         q: filters?.q ?? '',
     });
 
@@ -48,7 +48,7 @@ export default function Index({
             schedule: schedule ?? 'all',
             school_id: filters?.school_id ?? '',
             department_id: filters?.department_id ?? '',
-            lecturer_id: filters?.lecturer_id ?? '',
+            owner_id: filters?.owner_id ?? '',
             q: filters?.q ?? '',
         });
     }, [schedule, filters]);
@@ -75,7 +75,7 @@ export default function Index({
             schedule: 'all',
             school_id: '',
             department_id: '',
-            lecturer_id: '',
+            owner_id: '',
             q: '',
         };
         setLocal(cleared);
@@ -100,7 +100,7 @@ export default function Index({
                     ← Back to admin
                 </Link>
                 <p className="text-sm text-theme-dim">
-                    Filter by schedule, school, department, or lecturer. Each row
+                    Filter by schedule, school, department, or exam owner. Each row
                     shows how many students have started or completed the exam.
                 </p>
 
@@ -182,22 +182,22 @@ export default function Index({
                         </div>
                         <div>
                             <label className="block text-xs text-theme-dim">
-                                Lecturer
+                                Exam owner
                             </label>
                             <select
                                 className="mt-1 w-full rounded-md border border-theme-line bg-theme-surface-soft px-2 py-2 text-sm text-theme-strong"
-                                value={local.lecturer_id}
+                                value={local.owner_id}
                                 onChange={(e) =>
                                     setLocal((p) => ({
                                         ...p,
-                                        lecturer_id: e.target.value,
+                                        owner_id: e.target.value,
                                     }))
                                 }
                             >
                                 <option value="">Any</option>
-                                {lecturers.map((l) => (
-                                    <option key={l.id} value={l.id}>
-                                        {l.username}
+                                {owners.map((owner) => (
+                                    <option key={owner.id} value={owner.id}>
+                                        {owner.username}
                                     </option>
                                 ))}
                             </select>

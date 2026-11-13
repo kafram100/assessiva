@@ -107,4 +107,4 @@ Endpoints are stubbed; Laravel calls them via `App\Services\AiService` using `AI
 
 ## Next modules (planned)
 
-Student entry, attempts, proctoring, question bank, admin/HOD workflows, sync APIs, and full parity with the legacy Blade app will be ported incrementally from `student-laravel` without modifying that project.
+User entry, attempts, proctoring, question bank, Super Admin workflows, sync APIs, and full parity with the legacy Blade app will be ported incrementally from `student-laravel` without modifying that project.

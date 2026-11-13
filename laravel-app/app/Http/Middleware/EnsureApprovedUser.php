@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Blocks non-admin staff whose account is pending, rejected, suspended, or deactivated.
+ * Blocks Users whose account is pending, rejected, suspended, or deactivated.
  */
 class EnsureApprovedUser
 {
@@ -21,7 +21,7 @@ class EnsureApprovedUser
             abort(403);
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isSuperAdmin()) {
             return $next($request);
         }
 

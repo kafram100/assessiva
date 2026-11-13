@@ -22,22 +22,8 @@ final class LinkableCourses
     {
         $q = Course::query()->orderBy('code')->orderBy('name');
 
-        if ($user->isAdmin()) {
+        if ($user->isSuperAdmin()) {
             return $q;
-        }
-
-        if ($user->isHod() && $user->department_id) {
-            $deptId = (int) $user->department_id;
-            $uid = (int) $user->id;
-
-            return $q->where(function ($w) use ($deptId, $uid): void {
-                $w->where('department_id', $deptId)
-                    ->orWhere('user_id', $uid);
-            });
-        }
-
-        if ($user->isApprovedLecturer()) {
-            return $q->where('user_id', (int) $user->id);
         }
 
         return $q->whereRaw('1 = 0');

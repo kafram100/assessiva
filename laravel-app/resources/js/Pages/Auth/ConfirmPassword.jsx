@@ -22,31 +22,40 @@ export default function ConfirmPassword() {
         <GuestLayout>
             <Head title="Confirm Password" />
 
-            <div className="mb-4 text-sm text-theme-dim">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
+            <div className="mb-6 text-center">
+                <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
+                    Confirm Password
+                </h2>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    This is a secure area of the application. Please confirm your password before continuing.
+                </p>
             </div>
 
-            <form onSubmit={submit}>
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+            <form onSubmit={submit} className="space-y-4">
+                <div>
+                    <InputLabel htmlFor="password" value="Password" className="text-xs font-medium" />
 
                     <TextInput
                         id="password"
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full text-sm"
+                        placeholder="••••••••"
                         isFocused={true}
+                        required
                         onChange={(e) => setData('password', e.target.value)}
                     />
 
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} className="mt-1 text-xs" />
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Confirm
+                <div className="pt-2">
+                    <PrimaryButton
+                        className="w-full justify-center py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all"
+                        disabled={processing}
+                    >
+                        {processing ? 'Confirming...' : 'Confirm'}
                     </PrimaryButton>
                 </div>
             </form>

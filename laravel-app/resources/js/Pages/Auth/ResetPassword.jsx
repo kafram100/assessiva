@@ -3,8 +3,12 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import PasswordValidation, {
+    isPasswordValid,
+    passwordsMatch,
+} from '@/Components/PasswordValidation';
+import { useState } from 'react';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 function EyeIcon() {
@@ -24,46 +28,9 @@ function EyeSlashIcon() {
     );
 }
 
-function CheckIcon({ passed }) {
-    return passed ? (
-        <svg className="h-3.5 w-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-    ) : (
-        <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <circle cx="12" cy="12" r="9" />
-        </svg>
-    );
-}
-
-// ── Validation helpers ────────────────────────────────────────────────────────
-const RULES = [
-    { key: 'length',    label: 'At least 8 characters',       test: (p) => p.length >= 8 },
-    { key: 'upper',     label: 'One uppercase letter (A–Z)',   test: (p) => /[A-Z]/.test(p) },
-    { key: 'lower',     label: 'One lowercase letter (a–z)',   test: (p) => /[a-z]/.test(p) },
-    { key: 'number',    label: 'One number (0–9)',             test: (p) => /[0-9]/.test(p) },
-    { key: 'special',   label: 'One special character',        test: (p) => /[^A-Za-z0-9]/.test(p) },
-];
-
-const STRENGTH_LEVELS = [
-    { label: 'Weak',        color: 'bg-red-500' },
-    { label: 'Fair',        color: 'bg-orange-400' },
-    { label: 'Strong',      color: 'bg-yellow-400' },
-    { label: 'Very Strong', color: 'bg-emerald-500' },
-];
-
-function getStrength(passed) {
-    if (passed <= 1) return 0;
-    if (passed <= 2) return 1;
-    if (passed <= 3) return 2;  // changed from 4 to allow "Strong" at 3
-    return 3;
-}
-
-// ── Component ────────────────────────────────────────────────────────────────
 export default function ResetPassword({ token, email }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [touched, setTouched] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         token: token,
@@ -72,20 +39,11 @@ export default function ResetPassword({ token, email }) {
         password_confirmation: '',
     });
 
-    // Compute rule results on every keystroke
-    const ruleResults = useMemo(() =>
-        RULES.map((r) => ({ ...r, passed: r.test(data.password) })),
-        [data.password]
-    );
-
-    const passedCount  = ruleResults.filter((r) => r.passed).length;
-    const strengthIdx  = getStrength(passedCount);
-    const strengthInfo = STRENGTH_LEVELS[strengthIdx];
-    const allPassed    = passedCount === RULES.length;
-    const passwordsMatch = data.password !== '' && data.password === data.password_confirmation;
+    const passwordReady =
+        isPasswordValid(data.password) &&
+        passwordsMatch(data.password, data.password_confirmation);
 
     const handlePasswordChange = (e) => {
-        setTouched(true);
         setData('password', e.target.value);
     };
 
@@ -100,25 +58,36 @@ export default function ResetPassword({ token, email }) {
         <GuestLayout>
             <Head title="Reset Password" />
 
-            <form onSubmit={submit}>
+            <div className="mb-6 text-center">
+                <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
+                    Reset Password
+                </h2>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Enter your email and choose a new, secure password.
+                </p>
+            </div>
+
+            <form onSubmit={submit} className="space-y-4">
                 {/* Email */}
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel htmlFor="email" value="Email" className="text-xs font-medium" />
                     <TextInput
                         id="email"
                         type="email"
                         name="email"
                         value={data.email}
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full text-sm"
                         autoComplete="username"
+                        placeholder="name@example.com"
                         onChange={(e) => setData('email', e.target.value)}
+                        required
                     />
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.email} className="mt-1 text-xs" />
                 </div>
 
                 {/* Password */}
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                <div>
+                    <InputLabel htmlFor="password" value="New Password" className="text-xs font-medium" />
 
                     <div className="relative mt-1">
                         <TextInput
@@ -126,15 +95,17 @@ export default function ResetPassword({ token, email }) {
                             type={showPassword ? 'text' : 'password'}
                             name="password"
                             value={data.password}
-                            className="block w-full pr-10"
+                            className="block w-full pr-10 text-sm"
                             autoComplete="new-password"
+                            placeholder="••••••••"
                             isFocused={true}
                             onChange={handlePasswordChange}
+                            required
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword((v) => !v)}
-                            className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                             tabIndex={-1}
                             aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
@@ -142,51 +113,14 @@ export default function ResetPassword({ token, email }) {
                         </button>
                     </div>
 
-                    {/* Strength meter — shown once the user starts typing */}
-                    {touched && data.password.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                            {/* 4-segment bar */}
-                            <div className="flex gap-1">
-                                {STRENGTH_LEVELS.map((level, i) => (
-                                    <div
-                                        key={level.label}
-                                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                                            i <= strengthIdx ? strengthInfo.color : 'bg-gray-200 dark:bg-gray-700'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                            <p className={`text-xs font-medium transition-colors ${
-                                strengthIdx === 0 ? 'text-red-500' :
-                                strengthIdx === 1 ? 'text-orange-400' :
-                                strengthIdx === 2 ? 'text-yellow-500' :
-                                'text-emerald-500'
-                            }`}>
-                                {strengthInfo.label}
-                            </p>
+                    <PasswordValidation password={data.password} />
 
-                            {/* Per-rule checklist */}
-                            <ul className="mt-1 space-y-1">
-                                {ruleResults.map((r) => (
-                                    <li key={r.key} className="flex items-center gap-1.5">
-                                        <CheckIcon passed={r.passed} />
-                                        <span className={`text-xs transition-colors ${
-                                            r.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'
-                                        }`}>
-                                            {r.label}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} className="mt-1 text-xs" />
                 </div>
 
                 {/* Confirm Password */}
-                <div className="mt-4">
-                    <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
+                <div>
+                    <InputLabel htmlFor="password_confirmation" value="Confirm Password" className="text-xs font-medium" />
 
                     <div className="relative mt-1">
                         <TextInput
@@ -194,14 +128,16 @@ export default function ResetPassword({ token, email }) {
                             id="password_confirmation"
                             name="password_confirmation"
                             value={data.password_confirmation}
-                            className="block w-full pr-10"
+                            className="block w-full pr-10 text-sm"
                             autoComplete="new-password"
+                            placeholder="••••••••"
                             onChange={(e) => setData('password_confirmation', e.target.value)}
+                            required
                         />
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword((v) => !v)}
-                            className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                             tabIndex={-1}
                             aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                         >
@@ -209,36 +145,34 @@ export default function ResetPassword({ token, email }) {
                         </button>
                     </div>
 
-                    {/* Live match feedback */}
-                    {data.password_confirmation.length > 0 && (
-                        <p className={`mt-1.5 text-xs font-medium flex items-center gap-1 ${
-                            passwordsMatch ? 'text-emerald-500' : 'text-red-500'
-                        }`}>
-                            {passwordsMatch ? (
-                                <>
-                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Passwords match
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    Passwords do not match
-                                </>
-                            )}
-                        </p>
-                    )}
+                    <PasswordValidation
+                        password={data.password}
+                        confirmation={data.password_confirmation}
+                        showRules={false}
+                    />
 
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+                    <InputError message={errors.password_confirmation} className="mt-1 text-xs" />
                 </div>
 
-                <div className="mt-6 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Reset Password
+                <div className="pt-2">
+                    <PrimaryButton
+                        className="w-full justify-center py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all"
+                        disabled={processing || !passwordReady}
+                    >
+                        {processing ? 'Resetting password...' : 'Reset Password'}
                     </PrimaryButton>
+                </div>
+
+                <div className="text-center pt-1">
+                    <Link
+                        href={route('login')}
+                        className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to login
+                    </Link>
                 </div>
             </form>
         </GuestLayout>

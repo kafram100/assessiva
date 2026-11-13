@@ -16,12 +16,8 @@ class QuestionBankCatalogController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        if (! $user instanceof User || ! $user->isAdminOrHod()) {
-            abort(403, 'Access denied. Admin or HOD only.');
-        }
-
-        if ($user->isHod() && ! $user->department_id) {
-            abort(403, 'Your HOD account must be assigned to a department before you can browse the question bank.');
+        if (! $user instanceof User || ! $user->isAdmin()) {
+            abort(403, 'Access denied. Admin only.');
         }
 
         $base = $this->scopedBankQuery($user);

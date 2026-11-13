@@ -10,6 +10,7 @@ class UserPracticeSession extends Model
         'user_id',
         'topic',
         'questions',
+        'options_order',
         'responses',
         'score',
         'ai_feedback',
@@ -21,6 +22,7 @@ class UserPracticeSession extends Model
         return [
             'user_id' => 'integer',
             'questions' => 'array',
+            'options_order' => 'array',
             'responses' => 'array',
             'ai_feedback' => 'array',
             'score' => 'decimal:2',

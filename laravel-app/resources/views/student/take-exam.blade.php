@@ -70,7 +70,7 @@
         /* ── Form controls in dark ── */
         .form-control,.form-select{background:var(--eq-surface2)!important;color:var(--eq-text)!important;border-color:var(--eq-border)!important}
         .form-control:focus,.form-select:focus{border-color:var(--eq-indigo)!important;box-shadow:0 0 0 .2rem rgba(129,140,248,.2)!important}
-        .form-control::placeholder{color:var(--eq-muted)!important}
+        .form-control::placeholder{color:var(--eq-muted)!important;opacity:0.4!important}
         .bg-light{background:var(--eq-surface2)!important;border-color:var(--eq-border)!important;color:var(--eq-text)!important}
 
         /* ── Submit area ── */

@@ -49,7 +49,7 @@ export default function Wallet({ tokenPrice, activeGateway }) {
                 <div className="mb-6">
                     <Link
                         href={route('practice-quizzes.index')}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-theme-dim hover:text-sky-500 transition-colors"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-theme-dim hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -90,7 +90,7 @@ export default function Wallet({ tokenPrice, activeGateway }) {
                                             key={pkgAmount}
                                             onClick={() => handleTopUp(pkgAmount)}
                                             disabled={loadingPackage !== null}
-                                            className="relative flex flex-col items-center justify-center p-6 rounded-2xl border border-theme-line bg-theme-layer-1 hover:border-sky-500 hover:shadow-[0_4px_20px_rgba(14,165,233,0.15)] transition-all group disabled:opacity-50 disabled:hover:border-theme-line"
+                                            className="relative flex flex-col items-center justify-center p-6 rounded-2xl border border-theme-line bg-theme-layer-1 hover:border-indigo-500 hover:shadow-[0_4px_20px_rgba(99,102,241,0.2)] transition-all group disabled:opacity-50 disabled:hover:border-theme-line"
                                         >
                                             <div className="text-2xl font-bold text-amber-400 mb-1">{tokens}</div>
                                             <div className="text-sm font-medium text-theme-strong mb-4">Tokens</div>
@@ -105,7 +105,7 @@ export default function Wallet({ tokenPrice, activeGateway }) {
 
                                             {isProcessing && (
                                                 <div className="absolute inset-0 bg-theme-layer-1/80 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                                                    <svg className="w-6 h-6 animate-spin text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                     </svg>
                                                 </div>

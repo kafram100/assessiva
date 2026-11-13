@@ -1,14 +1,27 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import PracticeHubLayout from '@/Layouts/PracticeHubLayout';
-import { Head, useForm, usePage, Link } from '@inertiajs/react';
+import { Head, useForm, usePage, Link, router } from '@inertiajs/react';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import UserAvatar from '@/Components/UserAvatar';
+import PasswordValidation, {
+    isPasswordValid,
+    passwordsMatch,
+} from '@/Components/PasswordValidation';
 
 export default function Settings({ user }) {
     const fileInputRef = useRef(null);
     const [previewUrl, setPreviewUrl] = useState(user.profile_picture_url || null);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    // Synchronize preview when user prop updates
+    useEffect(() => {
+        setPreviewUrl(user.profile_picture_url || null);
+        setSelectedFile(null);
+    }, [user.profile_picture_url]);
 
     const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
         name: user.name || '',
@@ -19,13 +32,51 @@ export default function Settings({ user }) {
         password: '',
         password_confirmation: '',
     });
+    const hasPasswordChange =
+        data.password.length > 0 || data.password_confirmation.length > 0;
+    const passwordReady =
+        !hasPasswordChange ||
+        (data.current_password.length > 0 &&
+            isPasswordValid(data.password) &&
+            passwordsMatch(data.password, data.password_confirmation));
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            setSelectedFile(file);
             setData('profile_picture', file);
             setPreviewUrl(URL.createObjectURL(file));
         }
+    };
+
+    const handleSavePhotoOnly = () => {
+        if (!selectedFile) return;
+        setUploadingPhoto(true);
+        const formData = new FormData();
+        formData.append('profile_picture', selectedFile);
+
+        router.post(route('student.settings.avatar'), formData, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setSelectedFile(null);
+                setData('profile_picture', null);
+            },
+            onFinish: () => setUploadingPhoto(false),
+        });
+    };
+
+    const handleRemovePhoto = () => {
+        if (!confirm('Are you sure you want to remove your profile picture?')) return;
+        setUploadingPhoto(true);
+        router.delete(route('student.settings.avatar.remove'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setSelectedFile(null);
+                setPreviewUrl(null);
+                setData('profile_picture', null);
+            },
+            onFinish: () => setUploadingPhoto(false),
+        });
     };
 
     const submit = (e) => {
@@ -36,6 +87,7 @@ export default function Settings({ user }) {
                 setData('current_password', '');
                 setData('password', '');
                 setData('password_confirmation', '');
+                setSelectedFile(null);
             },
         });
     };
@@ -48,7 +100,7 @@ export default function Settings({ user }) {
                 <div className="mb-6">
                     <Link
                         href={route('practice-quizzes.index')}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-theme-dim hover:text-sky-500 transition-colors"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-theme-dim hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -73,35 +125,77 @@ export default function Settings({ user }) {
                         {/* Profile Picture */}
                         <div>
                             <h3 className="text-lg font-medium text-theme-content mb-4">Profile Picture</h3>
-                            <div className="flex items-center gap-6">
-                                <div className="h-24 w-24 rounded-full bg-theme-layer-3 overflow-hidden border-2 border-theme-line flex items-center justify-center shrink-0">
-                                    {previewUrl ? (
-                                        <img src={previewUrl} alt="Profile" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <svg className="h-12 w-12 text-theme-dim" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
-                                    )}
-                                </div>
-                                <div>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                                <UserAvatar
+                                    user={user}
+                                    src={previewUrl}
+                                    size="xl"
+                                    className="ring-4 ring-indigo-500/20"
+                                />
+                                <div className="space-y-3">
                                     <input
                                         type="file"
                                         className="hidden"
                                         ref={fileInputRef}
                                         onChange={handleFileChange}
-                                        accept="image/*"
+                                        accept="image/jpeg,image/png,image/jpg,image/webp,image/gif"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="rounded-lg bg-theme-layer-3 border border-theme-line px-4 py-2 text-sm font-medium text-theme-content hover:bg-theme-layer-4 transition"
-                                    >
-                                        Change Picture
-                                    </button>
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={uploadingPhoto}
+                                            className="rounded-lg bg-theme-layer-3 border border-theme-line px-4 py-2 text-sm font-medium text-theme-content hover:bg-theme-layer-4 transition disabled:opacity-50"
+                                        >
+                                            {user.profile_picture_url || previewUrl ? 'Change Picture' : 'Upload Picture'}
+                                        </button>
+
+                                        {selectedFile && (
+                                            <button
+                                                type="button"
+                                                onClick={handleSavePhotoOnly}
+                                                disabled={uploadingPhoto}
+                                                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition disabled:opacity-50 shadow-sm"
+                                            >
+                                                {uploadingPhoto ? (
+                                                    <>
+                                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                        Save Picture
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+
+                                        {(user.profile_picture_url || previewUrl) && !selectedFile && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemovePhoto}
+                                                disabled={uploadingPhoto}
+                                                className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 px-3.5 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-900/40 transition disabled:opacity-50"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {selectedFile && (
+                                        <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                                            ✓ New image selected: {selectedFile.name} (click "Save Picture" or "Save Changes" below).
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-theme-dim">
+                                        JPG, PNG, WebP or GIF up to 10MB.
+                                    </p>
                                     <InputError message={errors.profile_picture} className="mt-2" />
                                 </div>
                             </div>
                         </div>
+
 
                         <hr className="border-theme-line" />
 
@@ -137,7 +231,7 @@ export default function Settings({ user }) {
                                     <InputLabel htmlFor="educational_level" value="Educational Level" />
                                     <select
                                         id="educational_level"
-                                        className="mt-1 block w-full border-theme-line bg-theme-elevated text-theme-content focus:border-sky-500 focus:ring-sky-500 rounded-md shadow-sm sm:text-sm"
+                                        className="mt-1 block w-full border-theme-line bg-theme-elevated text-theme-content focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm sm:text-sm"
                                         value={data.educational_level}
                                         onChange={(e) => setData({...data, educational_level: e.target.value, level: ''})}
                                     >
@@ -153,7 +247,7 @@ export default function Settings({ user }) {
                                     <InputLabel htmlFor="level" value="Current Level (Optional)" />
                                     <select
                                         id="level"
-                                        className="mt-1 block w-full border-theme-line bg-theme-elevated text-theme-content focus:border-sky-500 focus:ring-sky-500 rounded-md shadow-sm sm:text-sm"
+                                        className="mt-1 block w-full border-theme-line bg-theme-elevated text-theme-content focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm sm:text-sm"
                                         value={data.level}
                                         onChange={(e) => setData('level', e.target.value)}
                                     >
@@ -200,8 +294,14 @@ export default function Settings({ user }) {
                                         type="password"
                                         className="mt-1 block w-full max-w-md"
                                         value={data.current_password}
+                                        required={hasPasswordChange}
                                         onChange={(e) => setData('current_password', e.target.value)}
                                     />
+                                    {hasPasswordChange && !data.current_password && (
+                                        <p className="mt-2 text-sm text-red-500">
+                                            Enter your current password to set a new one.
+                                        </p>
+                                    )}
                                     <InputError className="mt-2" message={errors.current_password} />
                                 </div>
 
@@ -212,8 +312,10 @@ export default function Settings({ user }) {
                                         type="password"
                                         className="mt-1 block w-full"
                                         value={data.password}
+                                        required={hasPasswordChange}
                                         onChange={(e) => setData('password', e.target.value)}
                                     />
+                                    <PasswordValidation password={data.password} />
                                     <InputError className="mt-2" message={errors.password} />
                                 </div>
 
@@ -224,7 +326,13 @@ export default function Settings({ user }) {
                                         type="password"
                                         className="mt-1 block w-full"
                                         value={data.password_confirmation}
+                                        required={hasPasswordChange}
                                         onChange={(e) => setData('password_confirmation', e.target.value)}
+                                    />
+                                    <PasswordValidation
+                                        password={data.password}
+                                        confirmation={data.password_confirmation}
+                                        showRules={false}
                                     />
                                     <InputError className="mt-2" message={errors.password_confirmation} />
                                 </div>
@@ -233,7 +341,7 @@ export default function Settings({ user }) {
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-theme-line flex justify-end">
-                        <PrimaryButton disabled={processing} className="px-6 py-3">
+                        <PrimaryButton disabled={processing || !passwordReady} className="px-6 py-3">
                             Save Changes
                         </PrimaryButton>
                     </div>

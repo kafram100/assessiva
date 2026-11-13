@@ -1,6 +1,7 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import FlashBanner from '@/Components/FlashBanner';
 import ThemeToggle from '@/Components/ThemeToggle';
+import UserAvatar from '@/Components/UserAvatar';
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
@@ -278,9 +279,19 @@ function SidebarLink({ href, label, icon: Icon, active, collapsed, onNavigate })
 }
 
 export default function AdminLayout({ header, children }) {
-    const user = usePage().props.auth.user;
-    const adminPermissions = usePage().props.auth.admin_permissions || [];
-    const hasPermission = (perm) => adminPermissions.includes('*') || adminPermissions.includes(perm);
+    const auth = usePage().props.auth;
+    const user = auth.user;
+    const isSuperAdmin = auth.is_super_admin;
+    const adminPermissions = auth.admin_permissions || [];
+    const hasPermission = (perm) => {
+        if (adminPermissions.includes('*') || adminPermissions.includes(perm)) return true;
+        if (perm === 'manage_questions' && (
+            adminPermissions.includes('load_questions') ||
+            adminPermissions.includes('edit_questions') ||
+            adminPermissions.includes('delete_questions')
+        )) return true;
+        return false;
+    };
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [viewportLg, setViewportLg] = useState(() => {
@@ -373,7 +384,7 @@ export default function AdminLayout({ header, children }) {
                             effectiveCollapsed ? 'sr-only' : ''
                         }`}
                     >
-                        {user?.id === 1 ? 'Super Admin' : 'Admin'}
+                        {isSuperAdmin ? 'Super Admin' : 'Admin'}
                     </span>
                 </Link>
 
@@ -385,7 +396,7 @@ export default function AdminLayout({ header, children }) {
                                 : ''
                         }`}
                     >
-                        {user?.id === 1 ? 'Super Admin' : 'Admin'}
+                        {isSuperAdmin ? 'Super Admin' : 'Admin'}
                     </div>
 
                     <SidebarLink
@@ -416,6 +427,16 @@ export default function AdminLayout({ header, children }) {
                             onNavigate={closeMobile}
                         />
                     )}
+                    {isSuperAdmin && (
+                        <SidebarLink
+                            href={route('admin.admins.index')}
+                            label="Administrators"
+                            icon={IconPersonGear}
+                            active={navActive('admin.admins*')}
+                            collapsed={effectiveCollapsed}
+                            onNavigate={closeMobile}
+                        />
+                    )}
                     {hasPermission('manage_billing') && (
                         <SidebarLink
                             href={route('admin.billing-settings')}
@@ -436,17 +457,6 @@ export default function AdminLayout({ header, children }) {
                             onNavigate={closeMobile}
                         />
                     )}
-                    {hasPermission('manage_admins') && (
-                        <SidebarLink
-                            href={route('admin.admins.index')}
-                            label="Administrators"
-                            icon={IconPersonGear}
-                            active={navActive('admin.admins*')}
-                            collapsed={effectiveCollapsed}
-                            onNavigate={closeMobile}
-                        />
-                    )}
-
                     <div className="mx-2 mt-4 border-t border-theme-line pt-4">
                         <SidebarLink
                             href={route('profile.edit')}
@@ -460,17 +470,7 @@ export default function AdminLayout({ header, children }) {
                 </nav>
 
                 <div className="flex shrink-0 items-center gap-2.5 border-t border-theme-line px-4 py-3.5">
-                    {user?.profile_picture_url ? (
-                        <img
-                            src={user.profile_picture_url}
-                            alt={user?.name}
-                            className="h-9 w-9 shrink-0 aspect-square rounded-full object-cover shadow-sm"
-                        />
-                    ) : (
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ai-accent to-ai-accent-deep text-sm font-bold text-white shadow-sm">
-                            {(user?.name ?? '?').slice(0, 1).toUpperCase()}
-                        </div>
-                    )}
+                    <UserAvatar user={user} size="lg" />
                     <div
                         className={`min-w-0 flex-1 overflow-hidden ${
                             effectiveCollapsed ? 'sr-only' : ''
@@ -480,7 +480,7 @@ export default function AdminLayout({ header, children }) {
                             {user?.name}
                         </div>
                         <div className="text-[0.72rem] text-theme-dim">
-                            {user?.id === 1 ? 'Super Admin' : 'Admin'}
+                            {isSuperAdmin ? 'Super Admin' : 'Admin'}
                         </div>
                     </div>
                     <button

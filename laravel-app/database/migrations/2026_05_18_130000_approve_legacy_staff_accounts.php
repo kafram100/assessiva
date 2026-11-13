@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +20,7 @@ return new class extends Migration
         }
 
         DB::table('users')
-            ->whereIn('role', [UserRole::Hod->value])
+            ->whereIn('role', ['hod'])
             ->where('status', UserStatus::Pending->value)
             ->whereNull('staff_id')
             ->update([

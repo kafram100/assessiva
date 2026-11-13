@@ -33,38 +33,12 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
-                'admin_permissions' => $request->user()?->isAdmin() 
-                    ? ($request->user()->id === 1 || empty($request->user()->permissions) ? ['*'] : $request->user()->permissions) 
-                    : [],
+                'is_super_admin' => $request->user()?->isSuperAdmin() ?? false,
+                'is_admin' => $request->user()?->isAdmin() ?? false,
+                'admin_permissions' => $request->user()?->isSuperAdmin()
+                    ? ['*']
+                    : ($request->user()?->isAdmin() ? ($request->user()->permissions ?? []) : []),
             ],
-            'hodContext' => function () use ($request) {
-                $user = $request->user();
-                if (! $user?->isHod()) {
-                    return null;
-                }
-
-                $user->loadMissing('department.school');
-                $department = $user->department;
-                if (! $department) {
-                    return [
-                        'hasDepartment' => false,
-                        'label' => null,
-                    ];
-                }
-
-                $schoolName = $department->school?->name;
-                $departmentName = $department->name;
-                $label = $schoolName
-                    ? "{$schoolName} · {$departmentName}"
-                    : $departmentName;
-
-                return [
-                    'hasDepartment' => true,
-                    'label' => $label,
-                    'departmentName' => $departmentName,
-                    'schoolName' => $schoolName,
-                ];
-            },
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

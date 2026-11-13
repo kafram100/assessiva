@@ -14,43 +14,30 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        // Super Admin (ID 1 gets all permissions in hasPermission())
+        $superadminPassword = env('SUPERADMIN_PASSWORD', self::TEST_PASSWORD);
+
+        // The configured Super Admin is the only account created with elevated access.
         User::query()->updateOrCreate(
-            ['email' => 'superadmin@example.com'],
+            ['email' => env('SUPERADMIN_EMAIL', 'superadmin@example.com')],
             [
                 'username' => 'superadmin',
                 'name' => 'Super Admin',
-                'password' => Hash::make(self::TEST_PASSWORD),
-                'role' => UserRole::Admin,
+                'password' => Hash::make($superadminPassword),
+                'role' => UserRole::SuperAdmin,
                 'status' => UserStatus::Approved,
                 'is_active' => true,
                 'approved_at' => now(),
             ],
         );
 
-        // Support Admin (with granular permissions)
-        User::query()->updateOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'username' => 'admin',
-                'name' => 'Support Admin',
-                'password' => Hash::make(self::TEST_PASSWORD),
-                'role' => UserRole::Admin,
-                'status' => UserStatus::Approved,
-                'permissions' => ['load_questions', 'delete_questions', 'edit_questions'],
-                'is_active' => true,
-                'approved_at' => now(),
-            ],
-        );
-
-        // Regular User (student)
+        // Regular User
         User::query()->updateOrCreate(
             ['email' => 'user@example.com'],
             [
                 'username' => 'user',
                 'name' => 'Demo User',
                 'password' => Hash::make(self::TEST_PASSWORD),
-                'role' => UserRole::Student,
+                'role' => UserRole::User,
                 'status' => UserStatus::Approved,
                 'is_active' => true,
                 'approved_at' => now(),

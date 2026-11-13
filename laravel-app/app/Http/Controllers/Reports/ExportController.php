@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Reports;
 
-use App\Exports\DepartmentAnalyticsExport;
 use App\Exports\ExamResultsExport;
 use App\Exports\FairnessReportExport;
 use App\Exports\InstitutionalAnalyticsExport;
@@ -17,7 +16,6 @@ use App\Models\Exam;
 use App\Models\ExamAllowedIndex;
 use App\Models\LearningTwin;
 use App\Services\AdminInstitutionalIntelligenceService;
-use App\Services\HodAcademicIntelligenceService;
 use App\Services\LearningTwinService;
 use App\Services\PredictionService;
 use Illuminate\Http\JsonResponse;
@@ -195,30 +193,10 @@ class ExportController extends Controller
         }
     }
 
-    public function exportDepartmentAnalytics(Request $request, HodAcademicIntelligenceService $hodAcademicIntelligence): BinaryFileResponse|JsonResponse
-    {
-        $user = $request->user();
-        if (! $user->isHod()) {
-            abort(403);
-        }
-
-        $payload = $hodAcademicIntelligence->dashboard($user);
-        $label = (string) ($payload['department']['name'] ?? 'department');
-        $deptSlug = Str::slug($label, '_') ?: 'department';
-
-        try {
-            $filename = "department_analytics_{$deptSlug}_".now()->format('Ymd_His').'.xlsx';
-
-            return Excel::download(new DepartmentAnalyticsExport($payload, $label), $filename);
-        } catch (Throwable) {
-            return $this->jsonError($request, 'Could not generate the department analytics export.', 500);
-        }
-    }
-
     public function exportInstitutionalAnalytics(Request $request, AdminInstitutionalIntelligenceService $svc): BinaryFileResponse|JsonResponse
     {
         $user = $request->user();
-        if (! $user->isAdmin()) {
+        if (! $user->isSuperAdmin()) {
             abort(403);
         }
 
@@ -236,9 +214,8 @@ class ExportController extends Controller
     public function exportProctoringReport(Request $request): BinaryFileResponse|JsonResponse
     {
         $user = $request->user();
-        $adminScope = $user->isAdmin();
-
-        if (! $adminScope && ! $user->isApprovedLecturer() && ! $user->isApprovedHod()) {
+        $adminScope = $user->isSuperAdmin();
+        if (! $adminScope) {
             abort(403);
         }
 

@@ -4,11 +4,14 @@ import { Head, Link } from '@inertiajs/react';
 export default function Result({ practiceSession, questions }) {
     const { score, responses, ai_feedback } = practiceSession;
 
-    const formatAnswer = (q, ans) => {
+    const formatAnswer = (q, ans, ansText) => {
+        if (ansText) return ansText;
         if (!ans) return null;
         if (q.question_type === 'mcq') {
             const letter = String(ans).trim().toUpperCase();
-            const opt = q.options?.find(o => o.option_key.toUpperCase() === letter);
+            const displayedText = q[`option_${letter.toLowerCase()}`];
+            if (displayedText) return `Option ${letter}: ${displayedText}`;
+            const opt = q.options?.find(o => o.option_key?.toUpperCase() === letter);
             if (opt) return `Option ${letter}: ${opt.option_text}`;
         }
         return ans;
@@ -22,7 +25,7 @@ export default function Result({ practiceSession, questions }) {
                 <div className="mb-10 text-center">
                     <h1 className="text-3xl font-bold text-theme-strong">Practice Complete!</h1>
                     <div className="mt-4 inline-flex items-center justify-center rounded-full bg-theme-elevated px-4 sm:px-8 py-4 shadow-lg ring-1 ring-theme-line">
-                        <div className="text-5xl font-extrabold text-sky-500">
+                        <div className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400">
                             {score}%
                         </div>
                         <div className="ml-4 text-left text-sm font-semibold uppercase tracking-wider text-theme-dim">
@@ -60,16 +63,16 @@ export default function Result({ practiceSession, questions }) {
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="rounded-xl bg-theme-surface p-4">
                                         <div className="mb-1 text-xs font-semibold uppercase text-theme-dim">Your Answer</div>
-                                        <div className="font-medium text-theme-strong">{formatAnswer(q, response?.user_answer) || <span className="text-theme-muted italic">No answer provided</span>}</div>
+                                        <div className="font-medium text-theme-strong">{formatAnswer(q, response?.user_answer, response?.user_answer_text) || <span className="text-theme-muted italic">No answer provided</span>}</div>
                                     </div>
                                     <div className="rounded-xl bg-theme-surface p-4">
                                         <div className="mb-1 text-xs font-semibold uppercase text-theme-dim">Correct Answer</div>
-                                        <div className="font-medium text-theme-strong">{formatAnswer(q, response?.correct_answer)}</div>
+                                        <div className="font-medium text-theme-strong">{formatAnswer(q, response?.correct_answer, response?.correct_answer_text)}</div>
                                     </div>
                                 </div>
                                 {response?.ai_feedback && (
-                                    <div className="mt-4 rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 text-sm text-theme-strong">
-                                        <div className="font-semibold text-violet-600 dark:text-violet-400 mb-1">Assessiva Feedback</div>
+                                    <div className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4 text-sm text-theme-strong">
+                                        <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">Assessiva Feedback</div>
                                         {response.ai_feedback}
                                     </div>
                                 )}

@@ -30,22 +30,18 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
         if (! $user instanceof User) {
-            return redirect()->route('admin.management.dashboard');
+            return redirect()->route('login');
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
-        if ($user->isHod()) {
-            return redirect()->route('hod.dashboard');
-        }
-
-        if ($user->isStudent()) {
+        if ($user->isUser()) {
             return redirect()->route('practice-quizzes.index');
         }
 
-        return redirect()->route('admin.dashboard');
+        return redirect()->route('home');
     }
 
     public function destroy(Request $request): RedirectResponse

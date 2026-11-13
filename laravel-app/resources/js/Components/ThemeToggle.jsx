@@ -36,7 +36,7 @@ function readIsDark() {
  * Toggles `dark` on `document.documentElement`, persists to localStorage,
  * and listens for cross-tab updates. Initial paint is handled in `app.blade.php`.
  */
-export default function ThemeToggle({ className = '' }) {
+export default function ThemeToggle({ className = '', iconClassName = '' }) {
     const [isDark, setIsDark] = useState(readIsDark);
 
     const applyDom = useCallback((dark) => {
@@ -85,12 +85,16 @@ export default function ThemeToggle({ className = '' }) {
     return (
         <button
             type="button"
-            className={`theme-toggle-btn ${className}`.trim()}
+            className={`theme-toggle-btn shrink-0 ${className}`.trim()}
             onClick={toggle}
             aria-label={label}
             title={label}
         >
-            {isDark ? <IconSun className="h-5 w-5" /> : <IconMoon className="h-5 w-5" />}
+            {isDark ? (
+                <IconSun className={`h-4 w-4 sm:h-5 sm:w-5 ${iconClassName}`.trim()} />
+            ) : (
+                <IconMoon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconClassName}`.trim()} />
+            )}
         </button>
     );
 }

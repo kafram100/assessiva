@@ -258,8 +258,8 @@ class Exam extends Model
             $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $filters['topic']).'%';
             $query->where('practice_topic', 'like', $term);
         }
-        if (! empty($filters['lecturer_id'])) {
-            $query->where('user_id', (int) $filters['lecturer_id']);
+        if (! empty($filters['owner_id'])) {
+            $query->where('user_id', (int) $filters['owner_id']);
         }
         if (! empty($filters['difficulty'])) {
             $d = (string) $filters['difficulty'];

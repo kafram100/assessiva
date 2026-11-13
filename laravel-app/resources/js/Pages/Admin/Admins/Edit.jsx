@@ -13,12 +13,11 @@ export default function Edit({ adminUser }) {
     });
 
     const availablePermissions = [
-        { id: 'manage_students', label: 'Manage Students' },
+        { id: 'manage_students', label: 'Manage Students / Users' },
         { id: 'export_users', label: 'Export Users Data' },
         { id: 'manage_questions', label: 'Manage Question Bank' },
         { id: 'manage_billing', label: 'Manage Billing' },
         { id: 'manage_settings', label: 'Manage Settings' },
-        { id: 'manage_admins', label: 'Manage Admins' },
     ];
 
     const handlePermissionChange = (e) => {

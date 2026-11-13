@@ -9,7 +9,7 @@ class ExamPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin() || $user->isApprovedLecturer();
+        return $user->isSuperAdmin();
     }
 
     public function view(User $user, Exam $exam): bool
@@ -19,7 +19,7 @@ class ExamPolicy
 
     public function create(User $user): bool
     {
-        return $user->isAdmin() || $user->isApprovedLecturer();
+        return $user->isSuperAdmin();
     }
 
     public function update(User $user, Exam $exam): bool

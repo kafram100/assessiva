@@ -13,6 +13,10 @@ export default {
     ],
 
     theme: {
+        screens: {
+            'xs': '360px',
+            ...defaultTheme.screens,
+        },
         extend: {
             divideColor: {
                 theme: 'var(--border-main)',

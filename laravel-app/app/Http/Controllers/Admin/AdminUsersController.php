@@ -15,7 +15,10 @@ class AdminUsersController extends Controller
 {
     public function index()
     {
-        $admins = User::where('role', UserRole::Admin)->get();
+        $admins = User::whereIn('role', [UserRole::Admin, UserRole::SuperAdmin])
+            ->orderBy('id')
+            ->get();
+
         return Inertia::render('Admin/Admins/Index', [
             'admins' => $admins,
         ]);
@@ -53,7 +56,7 @@ class AdminUsersController extends Controller
 
     public function edit(User $admin)
     {
-        if ($admin->id === 1) {
+        if ($admin->id === 1 || $admin->isSuperAdmin()) {
             return redirect()->route('admin.admins.index')->with('error', 'Cannot edit the Super Admin.');
         }
 
@@ -64,7 +67,7 @@ class AdminUsersController extends Controller
 
     public function update(Request $request, User $admin)
     {
-        if ($admin->id === 1) {
+        if ($admin->id === 1 || $admin->isSuperAdmin()) {
             return redirect()->route('admin.admins.index')->with('error', 'Cannot edit the Super Admin.');
         }
 
@@ -91,7 +94,7 @@ class AdminUsersController extends Controller
 
     public function destroy(User $admin)
     {
-        if ($admin->id === 1) {
+        if ($admin->id === 1 || $admin->isSuperAdmin()) {
             return redirect()->route('admin.admins.index')->with('error', 'Cannot delete the Super Admin.');
         }
 

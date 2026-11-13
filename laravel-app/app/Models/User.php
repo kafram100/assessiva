@@ -62,15 +62,36 @@ class User extends Authenticatable
         ];
     }
 
-    protected $appends = ['profile_picture_url'];
-
+    protected $appends = ['profile_picture_url', 'is_super_admin'];
 
     public function getProfilePictureUrlAttribute(): ?string
     {
-        if ($this->profile_picture) {
-            return asset('storage/' . $this->profile_picture);
+        if (!$this->profile_picture) {
+            return null;
         }
-        return null;
+
+        if (str_starts_with($this->profile_picture, 'http://') || str_starts_with($this->profile_picture, 'https://')) {
+            return $this->profile_picture;
+        }
+
+        $clean = ltrim($this->profile_picture, '/');
+        if (str_starts_with($clean, 'storage/')) {
+            $clean = substr($clean, 8);
+        }
+
+        $fullPath = storage_path('app/public/' . $clean);
+        if (!file_exists($fullPath)) {
+            return null;
+        }
+
+        $version = filemtime($fullPath);
+
+        return asset('storage/' . $clean) . '?v=' . $version;
+    }
+
+    public function getIsSuperAdminAttribute(): bool
+    {
+        return $this->isSuperAdmin();
     }
 
     public function exams()
@@ -103,54 +124,48 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === UserRole::SuperAdmin;
+    }
+
     public function isAdmin(): bool
     {
-        return $this->role === UserRole::Admin;
-    }
-
-    public function isApprovedHod(): bool
-    {
-        return $this->isHod();
-    }
-
-    public function isAdminOrHod(): bool
-    {
-        return $this->isAdmin() || $this->isHod();
+        return $this->role === UserRole::Admin || $this->role === UserRole::SuperAdmin;
     }
 
     public function hasPermission(string $permission): bool
     {
-        if (!$this->isAdmin()) {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->role !== UserRole::Admin) {
             return false;
         }
 
-        // Admin ID 1 is the Super Admin and has all permissions
-        if ($this->id === 1) {
+        if (!is_array($this->permissions) || empty($this->permissions)) {
+            return false;
+        }
+
+        if (in_array('*', $this->permissions, true) || in_array($permission, $this->permissions, true)) {
             return true;
         }
 
-        if (empty($this->permissions)) {
+        if ($permission === 'manage_questions' && (
+            in_array('load_questions', $this->permissions, true) ||
+            in_array('edit_questions', $this->permissions, true) ||
+            in_array('delete_questions', $this->permissions, true)
+        )) {
             return true;
         }
 
-        return in_array($permission, $this->permissions, true) || in_array('*', $this->permissions, true);
-    }
-
-    public function isHod(): bool
-    {
         return false;
     }
 
-    public function isStudent(): bool
+    public function isUser(): bool
     {
-        return $this->role === UserRole::Student;
-    }
-
-    public function requiresHodAiQuestionReview(): bool
-    {
-        // The require_hod_approval_for_ai_questions column was dropped.
-        // Returning false by default to restore functionality without errors.
-        return false;
+        return $this->role === UserRole::User;
     }
 
     public function canManageExam(Exam $exam): bool
@@ -162,8 +177,8 @@ class User extends Authenticatable
      * @param  Builder<User>  $query
      * @return Builder<User>
      */
-    public function scopeStudents(Builder $query): Builder
+    public function scopeUsers(Builder $query): Builder
     {
-        return $query->where('role', UserRole::Student);
+        return $query->where('role', UserRole::User);
     }
 }

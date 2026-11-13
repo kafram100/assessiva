@@ -8,6 +8,7 @@ function PermissionBadge({ perm }) {
         manage_billing:   'Billing',
         manage_settings:  'Settings',
         manage_admins:    'Admins',
+        export_users:     'Export Users',
         '*':              'All',
     };
     return (
@@ -17,7 +18,7 @@ function PermissionBadge({ perm }) {
     );
 }
 
-export default function Index({ admins }) {
+export default function Index({ admins = [] }) {
     const { delete: destroy, processing } = useForm();
 
     const handleDelete = (id) => {
@@ -37,7 +38,6 @@ export default function Index({ admins }) {
             <Head title="Administrators" />
 
             <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-
                 {/* Action bar */}
                 <div className="mb-6 flex items-center justify-between gap-4">
                     <p className="text-sm text-theme-dim">
@@ -71,7 +71,7 @@ export default function Index({ admins }) {
                                 </div>
 
                                 {/* Role badge */}
-                                {admin.id === 1 ? (
+                                {admin.id === 1 || admin.role === 'super_admin' ? (
                                     <span className="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                         Super Admin
                                     </span>
@@ -86,7 +86,7 @@ export default function Index({ admins }) {
                             <div className="mt-3">
                                 <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-theme-dim">Permissions</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {admin.id === 1 ? (
+                                    {admin.id === 1 || admin.role === 'super_admin' ? (
                                         <PermissionBadge perm="*" />
                                     ) : admin.permissions?.length > 0 ? (
                                         admin.permissions.map((p) => <PermissionBadge key={p} perm={p} />)
@@ -97,18 +97,18 @@ export default function Index({ admins }) {
                             </div>
 
                             {/* Actions */}
-                            {admin.id !== 1 && (
-                                <div className="mt-3 flex gap-2 border-t border-theme-line pt-3">
+                            {admin.id !== 1 && admin.role !== 'super_admin' && (
+                                <div className="mt-4 flex justify-end gap-2 border-t border-theme-line pt-3">
                                     <Link
                                         href={route('admin.admins.edit', admin.id)}
-                                        className="flex-1 rounded-lg border border-theme-line bg-white/[0.04] py-1.5 text-center text-xs font-medium text-theme-strong transition hover:border-ai-accent/40 hover:text-ai-accent"
+                                        className="rounded-lg border border-theme-line px-3 py-1.5 text-xs font-medium text-ai-accent hover:bg-white/[0.04]"
                                     >
                                         Edit
                                     </Link>
                                     <button
                                         onClick={() => handleDelete(admin.id)}
                                         disabled={processing}
-                                        className="flex-1 rounded-lg border border-red-500/20 bg-red-500/10 py-1.5 text-center text-xs font-medium text-red-500 transition hover:bg-red-500/20"
+                                        className="rounded-lg border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                                     >
                                         Delete
                                     </button>
@@ -116,13 +116,19 @@ export default function Index({ admins }) {
                             )}
                         </div>
                     ))}
+
+                    {admins.length === 0 && (
+                        <div className="rounded-xl border border-theme-line bg-theme-glass py-12 text-center text-sm text-theme-dim">
+                            No administrators yet.
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Desktop table view ── */}
-                <div className="hidden md:block overflow-hidden rounded-xl border border-theme-line bg-theme-glass shadow-sm">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr className="border-b border-theme-line bg-white/[0.03]">
+                <div className="hidden overflow-hidden rounded-xl border border-theme-line bg-theme-glass shadow-sm md:block">
+                    <table className="min-w-full divide-y divide-theme-line text-sm">
+                        <thead className="bg-theme-surface-soft">
+                            <tr>
                                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-theme-dim">Admin</th>
                                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-theme-dim">Role</th>
                                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-theme-dim">Permissions</th>
@@ -147,7 +153,7 @@ export default function Index({ admins }) {
 
                                     {/* Role */}
                                     <td className="whitespace-nowrap px-6 py-4">
-                                        {admin.id === 1 ? (
+                                        {admin.id === 1 || admin.role === 'super_admin' ? (
                                             <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                                 Super Admin
                                             </span>
@@ -161,7 +167,7 @@ export default function Index({ admins }) {
                                     {/* Permissions */}
                                     <td className="px-6 py-4">
                                         <div className="flex flex-wrap gap-1.5">
-                                            {admin.id === 1 ? (
+                                            {admin.id === 1 || admin.role === 'super_admin' ? (
                                                 <PermissionBadge perm="*" />
                                             ) : admin.permissions?.length > 0 ? (
                                                 admin.permissions.map((p) => <PermissionBadge key={p} perm={p} />)
@@ -173,7 +179,7 @@ export default function Index({ admins }) {
 
                                     {/* Actions */}
                                     <td className="whitespace-nowrap px-6 py-4 text-right">
-                                        {admin.id !== 1 ? (
+                                        {admin.id !== 1 && admin.role !== 'super_admin' ? (
                                             <div className="flex justify-end gap-3">
                                                 <Link
                                                     href={route('admin.admins.edit', admin.id)}

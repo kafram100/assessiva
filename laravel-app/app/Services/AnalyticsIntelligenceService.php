@@ -20,7 +20,7 @@ class AnalyticsIntelligenceService
      */
     public function buildPayload(User $owner, Course $course): array
     {
-        $allLecturers = $owner->isAdmin();
+        $allLecturers = $owner->isSuperAdmin();
 
         $examIds = Exam::query()
             ->where('course_id', $course->id)
@@ -104,7 +104,7 @@ class AnalyticsIntelligenceService
             throw new \RuntimeException((string) ($data['message'] ?? 'AI service returned failure.'));
         }
 
-        $contextKey = 'course:'.$course->id.':'.($owner->isAdmin() ? 'all' : 'own');
+        $contextKey = 'course:'.$course->id.':'.($owner->isSuperAdmin() ? 'all' : 'own');
 
         $attrs = [
             'owner_user_id' => $owner->id,

@@ -28,7 +28,7 @@ trait RollsUpDepartmentIntelligence
         $courseIds = Course::query()->where('department_id', $departmentId)->pluck('id');
         $lecturerIds = User::query()
             ->where('department_id', $departmentId)
-            ->whereIn('role', [UserRole::Hod])
+            ->where('role', UserRole::SuperAdmin)
             ->pluck('id');
 
         if ($courseIds->isEmpty() && $lecturerIds->isEmpty()) {

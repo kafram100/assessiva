@@ -7,7 +7,7 @@ import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
 const roleLayouts = {
-    admin: AdminLayout,
+    super_admin: AdminLayout,
 };
 
 export default function Edit({ mustVerifyEmail, status }) {

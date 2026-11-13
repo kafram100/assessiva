@@ -3,15 +3,13 @@
 namespace App\Http\Controllers\Public;
 
 use App\Enums\PracticeVisibility;
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Exam;
 use App\Models\PracticeQuizAttempt;
 use App\Models\Question;
+use App\Models\QuestionBank;
 use App\Models\School;
-use App\Models\User;
 use App\Services\PracticeFeedbackService;
 use App\Services\ScriptMarkingApiService;
 use App\Support\AnswerScoring;
@@ -69,12 +67,15 @@ class PracticeQuizController extends Controller
             'programs' => $this->distinctExamField('target_program'),
             'levels' => $this->distinctExamField('target_level'),
             'topics' => $this->distinctExamField('practice_topic'),
+            'availableCourses' => QuestionBank::query()
+                ->where('is_active', true)
+                ->whereNotNull('topic')
+                ->where('topic', '!=', '')
+                ->distinct()
+                ->orderBy('topic')
+                ->pluck('topic')
+                ->values(),
             'difficulties' => $this->distinctExamField('difficulty_level'),
-            'lecturers' => User::query()
-                ->where('status', UserStatus::Approved)
-                ->where('role', UserRole::Hod)
-                ->orderBy('name')
-                ->get(['id', 'name']),
         ]);
     }
 
@@ -120,9 +121,15 @@ class PracticeQuizController extends Controller
         $tokenPrice = (int) \App\Models\AppSetting::getValue('token_price_per_question', '1');
         $cost = $questionCount * $tokenPrice;
 
-        if (($user->free_questions_remaining + $user->tokens) < $cost) {
+        $available = (int) ($user->free_questions_remaining + $user->tokens);
+        if ($available < $cost) {
+            $needed = $cost - $available;
+            $msg = $available > 0
+                ? "You have {$available} question token(s) available, but this quiz requires {$cost} tokens ({$needed} more needed). Please top up your tokens."
+                : "You need {$cost} tokens to start this quiz. Please Top Up.";
+
             return back()->withErrors([
-                'quiz' => "You need {$cost} tokens to start this quiz. Please Top Up.",
+                'quiz' => $msg,
             ])->withInput();
         }
 
@@ -374,7 +381,7 @@ class PracticeQuizController extends Controller
             'level' => $request->input('level'),
             'course' => $request->input('course'),
             'topic' => $request->input('topic'),
-            'lecturer_id' => $request->input('lecturer_id'),
+            'owner_id' => $request->input('owner_id'),
             'difficulty' => $request->input('difficulty'),
             'search' => $request->input('search'),
         ];

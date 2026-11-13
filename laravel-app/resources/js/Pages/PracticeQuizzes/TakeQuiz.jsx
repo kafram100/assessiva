@@ -6,7 +6,7 @@ function OptionLetter({ label, name, value, checked, onChange, disabled }) {
     return (
         <label
             className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                checked ? 'border-sky-500 bg-sky-500/10' : 'border-theme-line bg-theme-highlight'
+                checked ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700 dark:text-indigo-200' : 'border-theme-line bg-theme-highlight'
             } ${disabled ? 'opacity-50' : ''}`}
         >
             <input
@@ -16,7 +16,7 @@ function OptionLetter({ label, name, value, checked, onChange, disabled }) {
                 checked={checked}
                 disabled={disabled}
                 onChange={() => onChange(value)}
-                className="text-sky-500"
+                className="text-indigo-600 focus:ring-indigo-500"
             />
             <span className="font-medium text-theme-muted">{label}</span>
         </label>

@@ -33,7 +33,7 @@ export default function History({ customSessions, quizAttempts, analytics = {} }
                     {/* Stat Card: Total Questions Solved */}
                     <div className="rounded-xl border border-theme-line bg-theme-elevated p-6 shadow-sm">
                         <div className="flex items-center gap-4">
-                            <div className="rounded-lg bg-sky-500/10 p-3 text-sky-500">
+                            <div className="rounded-lg bg-indigo-500/10 p-3 text-indigo-600 dark:text-indigo-400">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -115,7 +115,7 @@ export default function History({ customSessions, quizAttempts, analytics = {} }
                 {/* Custom Practice Sessions Section */}
                 <section>
                     <h2 className="mb-6 text-xl font-semibold text-theme-strong flex items-center gap-2">
-                        <svg className="w-6 h-6 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
                         Generated Practice
@@ -139,7 +139,7 @@ export default function History({ customSessions, quizAttempts, analytics = {} }
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-lg font-bold text-violet-500">
+                                            <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
                                                 {session.completed_at ? `${Math.round((session.score / 100) * (session.questions?.length || 0))}/${session.questions?.length || 0}` : 'In Progress'}
                                             </div>
                                         </div>
@@ -152,14 +152,14 @@ export default function History({ customSessions, quizAttempts, analytics = {} }
                                         {session.completed_at ? (
                                             <Link 
                                                 href={route('student.practice.result', { session: session.id })}
-                                                className="text-sm font-medium text-theme-strong underline decoration-theme-line hover:decoration-violet-500 transition-colors"
+                                                className="text-sm font-medium text-theme-strong underline decoration-theme-line hover:decoration-indigo-500 transition-colors"
                                             >
                                                 Review Feedback
                                             </Link>
                                         ) : (
                                             <Link 
                                                 href={route('student.practice.take', { session: session.id })}
-                                                className="text-sm font-medium text-sky-500 hover:text-sky-400 transition-colors"
+                                                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 transition-colors"
                                             >
                                                 Resume Practice
                                             </Link>

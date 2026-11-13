@@ -47,7 +47,7 @@ class RegisteredUserController extends Controller
             'educational_level' => $validated['educational_level'],
         ]);
         $user->password                 = Hash::make($validated['password']);
-        $user->role                     = UserRole::Student;
+        $user->role                     = UserRole::User;
         $user->status                   = UserStatus::Approved;
         $user->is_active                = true;
         $user->free_questions_remaining = 20;

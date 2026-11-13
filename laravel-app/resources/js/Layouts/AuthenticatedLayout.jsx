@@ -2,6 +2,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ThemeToggle from '@/Components/ThemeToggle';
+import UserAvatar from '@/Components/UserAvatar';
 import { Link, usePage } from '@inertiajs/react';
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -12,9 +13,33 @@ export default function AuthenticatedLayout({ header, children }) {
             <nav className="sticky top-0 z-50 border-b border-theme-line backdrop-blur-xl bg-[color:var(--topbar-bg)]">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
-                        <div className="flex">
+                        <div className="flex items-center gap-3">
+                            <Link
+                                href="/"
+                                className="theme-toggle-btn group inline-flex !h-9 sm:!h-10 !w-auto items-center gap-1.5 px-2.5 sm:px-3 text-xs font-semibold shadow-sm no-underline"
+                                title="Go to Home page"
+                                aria-label="Go to Home page"
+                            >
+                                <svg
+                                    className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                    />
+                                </svg>
+                                <span className="hidden sm:inline font-semibold">Home</span>
+                            </Link>
+
+                            <div className="h-5 w-px bg-theme-line hidden sm:block" />
+
                             <div className="flex shrink-0 items-center">
-                                <Link href="/">
+                                <Link href="/" className="flex items-center gap-2">
                                     <ApplicationLogo className="block h-9 w-auto fill-current text-ai-accent" />
                                 </Link>
                             </div>
@@ -39,9 +64,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                                 type="button"
                                                 className="inline-flex items-center rounded-full sm:rounded-lg sm:border sm:border-theme-line sm:bg-theme-highlight sm:px-3 sm:py-2 text-sm font-medium leading-4 text-theme-muted transition duration-150 ease-out hover:border-ai-accent/30 hover:text-theme-strong focus:outline-none"
                                             >
-                                                {user.profile_picture_url && (
-                                                    <img src={user.profile_picture_url} alt={user.name} className="sm:mr-2 h-8 w-8 sm:h-6 sm:w-6 shrink-0 aspect-square rounded-full object-cover" />
-                                                )}
+                                                <UserAvatar user={user} size="sm" className="sm:mr-2" />
                                                 <span className="hidden sm:inline-flex">{user.name}</span>
 
                                                 <svg

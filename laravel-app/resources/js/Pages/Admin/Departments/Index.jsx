@@ -38,7 +38,7 @@ export default function Index({ departments }) {
                                     <th className="px-4 py-3">Name</th>
                                     <th className="px-4 py-3">School</th>
                                     <th className="px-4 py-3">Code</th>
-                                    <th className="px-4 py-3">Staff</th>
+                                    <th className="px-4 py-3">Users</th>
                                     <th className="px-4 py-3">Actions</th>
                                 </tr>
                             </thead>
@@ -65,7 +65,7 @@ export default function Index({ departments }) {
                                             {d.code ?? '-'}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {d.lecturers_count}
+                                            {d.users_count}
                                         </td>
                                         <td className="px-4 py-3">
                                             <Link
