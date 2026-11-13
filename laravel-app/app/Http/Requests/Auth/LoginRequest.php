@@ -9,6 +9,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -38,48 +39,61 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $login = $this->input('login');
-        $loginType = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : (preg_match('/^[0-9\-\+\s\(\)]+$/', $login) ? 'phone' : 'username');
+        $login = trim((string) $this->input('login'));
+        $password = (string) $this->input('password');
 
-        if (! Auth::attempt([$loginType => $this->input('login'), 'password' => $this->input('password')], $this->boolean('remember'))) {
+        $user = User::where(function ($query) use ($login) {
+            $query->whereRaw('LOWER(email) = ?', [strtolower($login)])
+                  ->orWhereRaw('LOWER(username) = ?', [strtolower($login)]);
+            if (preg_match('/^[0-9\-\+\s\(\)]+$/', $login)) {
+                $query->orWhere('phone', $login);
+            }
+        })->first();
+
+        if (! $user) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'login' => trans('auth.failed'),
+                'login' => 'No account was found with that email or username. Please check your spelling.',
             ]);
         }
 
-        $user = Auth::user();
-        if ($user instanceof User && $user->role !== UserRole::SuperAdmin) {
+        if (! Hash::check($password, $user->password)) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'password' => 'The password you entered is incorrect. Please try again.',
+            ]);
+        }
+
+        if ($user->role !== UserRole::SuperAdmin) {
             if ($user->is_active === false) {
-                Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
                     'login' => 'Your account has been deactivated. Contact an administrator.',
                 ]);
             }
             if ($user->status === UserStatus::Rejected) {
-                Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
                     'login' => 'Your account has been rejected. Contact an administrator.',
                 ]);
             }
             if ($user->status === UserStatus::Suspended) {
-                Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
                     'login' => 'Your account has been suspended. Contact an administrator.',
                 ]);
             }
             if ($user->status !== UserStatus::Approved) {
-                Auth::logout();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
                     'login' => 'Your account is pending approval. You will be able to log in once an administrator approves it.',
                 ]);
             }
         }
+
+        Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
     }

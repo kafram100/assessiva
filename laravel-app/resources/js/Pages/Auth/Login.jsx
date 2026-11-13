@@ -44,7 +44,7 @@ export default function Login({ status, canResetPassword }) {
 
             <form onSubmit={submit} className="space-y-4">
                 <div>
-                    <InputLabel htmlFor="login" value="Email or phone" className="text-xs font-medium" />
+                    <InputLabel htmlFor="login" value="Email, username, or phone" className="text-xs font-medium" />
 
                     <TextInput
                         id="login"
@@ -53,7 +53,7 @@ export default function Login({ status, canResetPassword }) {
                         value={data.login}
                         className="mt-1 block w-full text-sm"
                         autoComplete="username"
-                        placeholder="e.g. name@example.com or 0241234567"
+                        placeholder="e.g. name@example.com, username, or phone"
                         isFocused={true}
                         onChange={(e) => setData('login', e.target.value)}
                     />

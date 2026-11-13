@@ -10,13 +10,27 @@ use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    public const TEST_PASSWORD = 'password';
+    public const DEFAULT_PASSWORD = 'Password123!';
 
     public function run(): void
     {
-        $superadminPassword = env('SUPERADMIN_PASSWORD', self::TEST_PASSWORD);
+        $superadminPassword = env('SUPERADMIN_PASSWORD', self::DEFAULT_PASSWORD);
 
-        // The configured Super Admin is the only account created with elevated access.
+        // 1. Primary Administrator
+        User::query()->updateOrCreate(
+            ['email' => 'trainovaedutech@gmail.com'],
+            [
+                'username' => 'Novagrade',
+                'name' => 'Novagrade',
+                'password' => Hash::make($superadminPassword),
+                'role' => UserRole::SuperAdmin,
+                'status' => UserStatus::Approved,
+                'is_active' => true,
+                'approved_at' => now(),
+            ],
+        );
+
+        // 2. Default System Super Admin
         User::query()->updateOrCreate(
             ['email' => env('SUPERADMIN_EMAIL', 'superadmin@example.com')],
             [
@@ -30,13 +44,13 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        // Regular User
+        // 3. Demo Regular User
         User::query()->updateOrCreate(
             ['email' => 'user@example.com'],
             [
                 'username' => 'user',
                 'name' => 'Demo User',
-                'password' => Hash::make(self::TEST_PASSWORD),
+                'password' => Hash::make(self::DEFAULT_PASSWORD),
                 'role' => UserRole::User,
                 'status' => UserStatus::Approved,
                 'is_active' => true,
