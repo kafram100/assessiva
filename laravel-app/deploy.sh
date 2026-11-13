@@ -15,6 +15,7 @@ composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 # 4. Install npm dependencies and build production assets
 npm ci --prefer-offline --no-audit
 npm run build
+rm -f public/hot
 
 # 5. Run database migrations safely in production
 php artisan migrate --force
