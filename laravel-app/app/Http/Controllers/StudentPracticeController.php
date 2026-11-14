@@ -541,15 +541,146 @@ class StudentPracticeController extends Controller
         ]);
     }
 
+    /**
+     * Retrieve the best reference / model answer for a question.
+     */
+    private function getQuestionReferenceAnswer(QuestionBank $q): string
+    {
+        $correct = trim((string) ($q->correct_answer ?? ''));
+        if ($correct !== '') {
+            return $correct;
+        }
+
+        $model = trim((string) ($q->model_answer ?? ''));
+        if ($model !== '') {
+            return $model;
+        }
+
+        return trim((string) ($q->marking_scheme ?? ''));
+    }
+
+    /**
+     * Fair local evaluation of theory / short answer responses when AI is offline.
+     */
+    private function evaluateTheoryLocally(string $userAnswer, string $referenceAnswer): array
+    {
+        $userClean = trim($userAnswer);
+        $refClean = trim($referenceAnswer);
+
+        if ($userClean === '') {
+            return [
+                'is_correct' => false,
+                'marks' => 0.0,
+                'feedback' => 'No answer was provided. Review the model answer above.',
+            ];
+        }
+
+        if ($refClean === '') {
+            return [
+                'is_correct' => true,
+                'marks' => 1.0,
+                'feedback' => 'Your answer has been submitted and recorded.',
+            ];
+        }
+
+        $userLower = mb_strtolower($userClean);
+        $refLower = mb_strtolower($refClean);
+
+        // 1. Direct or substring match
+        if ($userLower === $refLower || str_contains($refLower, $userLower)) {
+            return [
+                'is_correct' => true,
+                'marks' => 1.0,
+                'feedback' => 'Excellent! Your answer directly matches the model answer.',
+            ];
+        }
+
+        if (str_contains($userLower, $refLower)) {
+            return [
+                'is_correct' => true,
+                'marks' => 1.0,
+                'feedback' => 'Excellent! Your comprehensive answer covers the model answer.',
+            ];
+        }
+
+        // 2. Keyword tokenization & matching (filter out common stopwords)
+        $stopWords = [
+            'a','an','the','and','or','but','if','because','as','what','which','this','that','these','those',
+            'then','so','than','such','both','through','about','for','is','are','was','were','be','been','being',
+            'have','has','had','do','does','did','to','from','in','out','on','off','over','under','again',
+            'further','once','here','there','when','where','why','how','all','any','both','each','few','more',
+            'most','other','some','such','no','nor','not','only','own','same','so','than','too','very','s','t',
+            'can','will','just','don','should','now','it','its','by','with','at','of'
+        ];
+        $stopWordsFlip = array_flip($stopWords);
+
+        $extractWords = function (string $text) use ($stopWordsFlip): array {
+            $cleaned = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', mb_strtolower($text));
+            $words = preg_split('/\s+/u', (string) $cleaned, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $filtered = [];
+            foreach ($words as $w) {
+                if (mb_strlen($w) > 1 && !isset($stopWordsFlip[$w])) {
+                    $filtered[$w] = true;
+                }
+            }
+            return array_keys($filtered);
+        };
+
+        $userWords = $extractWords($userClean);
+        $refWords = $extractWords($refClean);
+
+        if (empty($refWords)) {
+            return [
+                'is_correct' => true,
+                'marks' => 1.0,
+                'feedback' => 'Your answer has been recorded. Review the model answer above.',
+            ];
+        }
+
+        $matchedWords = array_intersect($userWords, $refWords);
+        $matchCount = count($matchedWords);
+        $userWordCount = count($userWords);
+        $refWordCount = count($refWords);
+
+        $userCoverage = $userWordCount > 0 ? ($matchCount / $userWordCount) : 0;
+        $refCoverage = $refWordCount > 0 ? ($matchCount / $refWordCount) : 0;
+
+        if ($matchCount >= 3 || $refCoverage >= 0.5 || ($matchCount >= 2 && $userCoverage >= 0.6)) {
+            $marks = ($refCoverage >= 0.7 || $matchCount >= 5) ? 1.0 : 0.8;
+            return [
+                'is_correct' => true,
+                'marks' => $marks,
+                'feedback' => 'Great job! Your answer covers key concepts from the model answer.',
+            ];
+        }
+
+        if ($matchCount >= 1 || $userCoverage >= 0.4 || mb_strlen($userClean) >= 20) {
+            $matchedSample = !empty($matchedWords) ? ' (' . implode(', ', array_slice($matchedWords, 0, 3)) . ')' : '';
+            return [
+                'is_correct' => false,
+                'marks' => 0.5,
+                'feedback' => 'Good attempt! You identified relevant concepts' . $matchedSample . '. Compare with the complete model answer to see additional key points.',
+            ];
+        }
+
+        return [
+            'is_correct' => false,
+            'marks' => 0.0,
+            'feedback' => 'Your answer does not sufficiently address the expected points. Study the model answer above.',
+        ];
+    }
+
     private function gradeNormally($questions, $responses, array $optionsOrder = [])
     {
-        $score = 0;
+        $score = 0.0;
         $total = count($questions);
         $formattedResponses = [];
 
         foreach ($questions as $q) {
             $userAnswerRaw = $responses[$q->id] ?? null;
             $optionsMap = $optionsOrder[$q->id] ?? null;
+            $referenceAnswer = $this->getQuestionReferenceAnswer($q);
+            $userAnswerTrimmed = trim((string) ($userAnswerRaw ?? ''));
 
             $originalAnswerKey = $userAnswerRaw;
             if ($q->question_type === 'mcq' && $userAnswerRaw && $optionsMap) {
@@ -557,25 +688,16 @@ class StudentPracticeController extends Controller
                 $originalAnswerKey = $optionsMap[$submittedLetter] ?? $submittedLetter;
             }
 
-            $correctOriginalKey = strtoupper(trim((string) ($q->correct_answer ?? '')));
-            $isCorrect = false;
-            if ($userAnswerRaw !== null && $userAnswerRaw !== '') {
-                if ($q->question_type === 'mcq') {
-                    $isCorrect = (strtoupper(trim((string) $originalAnswerKey)) === $correctOriginalKey);
-                } else {
-                    $isCorrect = (strtolower(trim((string) $userAnswerRaw)) === strtolower($correctOriginalKey));
-                }
-            }
-
-            if ($isCorrect) {
-                $score++;
-            }
-
-            $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginalKey, $optionsMap, true))) ? $k : $q->correct_answer;
-
-            $userAnswerText = $userAnswerRaw;
-            $correctAnswerText = $q->correct_answer;
             if ($q->question_type === 'mcq') {
+                $correctOriginalKey = strtoupper(trim((string) ($q->correct_answer ?? '')));
+                $isCorrect = ($userAnswerTrimmed !== '') && (strtoupper(trim((string) $originalAnswerKey)) === $correctOriginalKey);
+                $marks = $isCorrect ? 1.0 : 0.0;
+                $score += $marks;
+
+                $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginalKey, $optionsMap, true))) ? $k : $q->correct_answer;
+                $userAnswerText = $userAnswerRaw;
+                $correctAnswerText = $q->correct_answer;
+
                 $userOpt = $q->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === strtoupper(trim((string) $originalAnswerKey)));
                 if ($userOpt) {
                     $userAnswerText = "Option {$userAnswerRaw}: {$userOpt->option_text}";
@@ -583,7 +705,40 @@ class StudentPracticeController extends Controller
                 $correctOpt = $q->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === $correctOriginalKey);
                 if ($correctOpt) {
                     $correctAnswerText = "Option {$correctDisplayed}: {$correctOpt->option_text}";
+                } else {
+                    $correctAnswerText = $correctDisplayed;
                 }
+
+                $aiFeedback = $isCorrect
+                    ? "Correct! Option {$correctDisplayed} is the right answer."
+                    : ($userAnswerTrimmed !== '' ? "Incorrect. The correct option is Option {$correctDisplayed}." : "No answer provided. The correct option is Option {$correctDisplayed}.");
+            } elseif ($q->question_type === 'fill_in') {
+                $correctDisplayed = $referenceAnswer;
+                $correctAnswerText = $referenceAnswer;
+                $userAnswerText = $userAnswerRaw;
+
+                $normUser = strtolower(trim($userAnswerTrimmed));
+                $normRef = strtolower(trim($referenceAnswer));
+                $isExact = ($normUser !== '' && $normRef !== '' && ($normUser === $normRef || str_contains($normRef, $normUser)));
+
+                $isCorrect = $isExact;
+                $marks = $isCorrect ? 1.0 : 0.0;
+                $score += $marks;
+
+                $aiFeedback = $isCorrect
+                    ? "Correct! Your answer matches the expected response."
+                    : ($userAnswerTrimmed !== '' ? "Incorrect. Review the expected answer: {$referenceAnswer}" : "No answer provided. Expected: {$referenceAnswer}");
+            } else {
+                // Theory / short_answer
+                $correctDisplayed = $referenceAnswer;
+                $correctAnswerText = $referenceAnswer;
+                $userAnswerText = $userAnswerRaw;
+
+                $eval = $this->evaluateTheoryLocally($userAnswerTrimmed, $referenceAnswer);
+                $isCorrect = $eval['is_correct'];
+                $marks = $eval['marks'];
+                $score += $marks;
+                $aiFeedback = $eval['feedback'];
             }
 
             $formattedResponses[$q->id] = [
@@ -592,8 +747,8 @@ class StudentPracticeController extends Controller
                 'user_answer_text' => $userAnswerText,
                 'correct_answer_text' => $correctAnswerText,
                 'is_correct' => $isCorrect,
-                'marks' => $isCorrect ? 1 : 0,
-                'ai_feedback' => ''
+                'marks' => $marks,
+                'ai_feedback' => $aiFeedback,
             ];
         }
 
@@ -651,13 +806,15 @@ class StudentPracticeController extends Controller
             $questionsForResults = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
                 ->sortBy(function ($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
                 ->map(function ($q) use ($optionsOrder) {
+                    $referenceAnswer = $this->getQuestionReferenceAnswer($q);
                     $optionsMap = $optionsOrder[$q->id] ?? null;
-                    if ($optionsMap) {
+                    if ($q->question_type === 'mcq' && $optionsMap) {
                         $correctOriginal = strtoupper(trim((string) $q->correct_answer));
                         $q->correct_option = array_search($correctOriginal, $optionsMap, true) ?: $q->correct_answer;
                     } else {
-                        $q->correct_option = $q->correct_answer;
+                        $q->correct_option = $referenceAnswer;
                     }
+                    $q->model_answer = $q->model_answer ?: $referenceAnswer;
                     return $q;
                 });
             return response()->json([
@@ -689,11 +846,12 @@ class StudentPracticeController extends Controller
                 $originalAnswerKey = $optionsMap[$submittedLetter] ?? $submittedLetter;
             }
 
-            $correctOriginalKey = strtoupper(trim((string) ($q->correct_answer ?? '')));
+            $referenceAnswer = $this->getQuestionReferenceAnswer($q);
             $userAnswerText = $userAnswerRaw;
-            $correctText = $q->correct_answer;
+            $correctText = $referenceAnswer;
             
             if ($q->question_type === 'mcq') {
+                $correctOriginalKey = strtoupper(trim((string) ($q->correct_answer ?? '')));
                 $userOpt = $q->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === strtoupper(trim((string) $originalAnswerKey)));
                 if ($userOpt) {
                     $userAnswerText = "Option {$userAnswerRaw}: {$userOpt->option_text}";
@@ -702,6 +860,8 @@ class StudentPracticeController extends Controller
                 $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginalKey, $optionsMap, true))) ? $k : $q->correct_answer;
                 if ($correctOpt) {
                     $correctText = "Option {$correctDisplayed}: {$correctOpt->option_text}";
+                } else {
+                    $correctText = $correctDisplayed;
                 }
             }
 
@@ -711,6 +871,7 @@ class StudentPracticeController extends Controller
                 'question' => strip_tags($q->question_text),
                 'correct_answer' => strip_tags($correctText),
                 'student_answer' => strip_tags($userAnswerText ?: 'No answer provided.'),
+                'model_answer' => strip_tags($q->model_answer ?? $referenceAnswer),
                 'marking_scheme' => strip_tags($q->marking_scheme ?? '')
             ];
             $indexedQuestions[$q->id] = $q;
@@ -764,9 +925,8 @@ class StudentPracticeController extends Controller
 
                         $qItem = $indexedQuestions[$qId];
                         $optionsMap = $optionsOrder[$qId] ?? null;
-                        $correctOriginal = strtoupper(trim((string) ($qItem->correct_answer ?? '')));
-                        $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginal, $optionsMap, true))) ? $k : $qItem->correct_answer;
-                        
+                        $referenceAnswer = $this->getQuestionReferenceAnswer($qItem);
+
                         $userAnswerRaw = $responses[$qId] ?? null;
                         $originalAnswerKey = $userAnswerRaw;
                         if ($qItem->question_type === 'mcq' && $userAnswerRaw && $optionsMap) {
@@ -775,8 +935,9 @@ class StudentPracticeController extends Controller
                         }
 
                         $userAnswerText = $userAnswerRaw;
-                        $correctAnswerText = $qItem->correct_answer;
                         if ($qItem->question_type === 'mcq') {
+                            $correctOriginal = strtoupper(trim((string) ($qItem->correct_answer ?? '')));
+                            $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginal, $optionsMap, true))) ? $k : $qItem->correct_answer;
                             $userOpt = $qItem->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === strtoupper(trim((string) $originalAnswerKey)));
                             if ($userOpt) {
                                 $userAnswerText = "Option {$userAnswerRaw}: {$userOpt->option_text}";
@@ -784,7 +945,12 @@ class StudentPracticeController extends Controller
                             $correctOpt = $qItem->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === $correctOriginal);
                             if ($correctOpt) {
                                 $correctAnswerText = "Option {$correctDisplayed}: {$correctOpt->option_text}";
+                            } else {
+                                $correctAnswerText = $correctDisplayed;
                             }
+                        } else {
+                            $correctDisplayed = $referenceAnswer;
+                            $correctAnswerText = $referenceAnswer;
                         }
 
                         $formattedResponses[$qId] = [
@@ -802,8 +968,7 @@ class StudentPracticeController extends Controller
                     foreach ($questions as $q) {
                         if (!isset($formattedResponses[$q->id])) {
                             $optionsMap = $optionsOrder[$q->id] ?? null;
-                            $correctOriginal = strtoupper(trim((string) ($q->correct_answer ?? '')));
-                            $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginal, $optionsMap, true))) ? $k : $q->correct_answer;
+                            $referenceAnswer = $this->getQuestionReferenceAnswer($q);
 
                             $userAnswerRaw = $responses[$q->id] ?? null;
                             $originalAnswerKey = $userAnswerRaw;
@@ -813,8 +978,9 @@ class StudentPracticeController extends Controller
                             }
 
                             $userAnswerText = $userAnswerRaw;
-                            $correctAnswerText = $q->correct_answer;
                             if ($q->question_type === 'mcq') {
+                                $correctOriginal = strtoupper(trim((string) ($q->correct_answer ?? '')));
+                                $correctDisplayed = ($optionsMap && ($k = array_search($correctOriginal, $optionsMap, true))) ? $k : $q->correct_answer;
                                 $userOpt = $q->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === strtoupper(trim((string) $originalAnswerKey)));
                                 if ($userOpt) {
                                     $userAnswerText = "Option {$userAnswerRaw}: {$userOpt->option_text}";
@@ -822,7 +988,12 @@ class StudentPracticeController extends Controller
                                 $correctOpt = $q->options->firstWhere(fn ($o) => strtoupper(trim((string) $o->option_key)) === $correctOriginal);
                                 if ($correctOpt) {
                                     $correctAnswerText = "Option {$correctDisplayed}: {$correctOpt->option_text}";
+                                } else {
+                                    $correctAnswerText = $correctDisplayed;
                                 }
+                            } else {
+                                $correctDisplayed = $referenceAnswer;
+                                $correctAnswerText = $referenceAnswer;
                             }
 
                             $formattedResponses[$q->id] = [
@@ -861,8 +1032,9 @@ class StudentPracticeController extends Controller
         $questions = QuestionBank::whereIn('id', $session->questions)->with('options')->get()
             ->sortBy(function($q) use ($session) { return array_flip($session->questions)[$q->id] ?? 9999; })->values()
             ->map(function($q) use ($optionsOrder) {
+                $referenceAnswer = $this->getQuestionReferenceAnswer($q);
                 $optionsMap = $optionsOrder[$q->id] ?? null;
-                if ($optionsMap) {
+                if ($q->question_type === 'mcq' && $optionsMap) {
                     $correctOriginal = strtoupper(trim((string) $q->correct_answer));
                     $correctDisplayed = array_search($correctOriginal, $optionsMap, true) ?: $q->correct_answer;
                     $q->correct_option = $correctDisplayed;
@@ -874,8 +1046,9 @@ class StudentPracticeController extends Controller
                     $q->option_d = isset($optionsMap['D']) ? ($optionsByKey[strtoupper($optionsMap['D'])]->option_text ?? null) : null;
                     $q->option_e = isset($optionsMap['E']) ? ($optionsByKey[strtoupper($optionsMap['E'])]->option_text ?? null) : null;
                 } else {
-                    $q->correct_option = $q->correct_answer;
+                    $q->correct_option = $referenceAnswer;
                 }
+                $q->model_answer = $q->model_answer ?: $referenceAnswer;
                 return $q;
             });
 

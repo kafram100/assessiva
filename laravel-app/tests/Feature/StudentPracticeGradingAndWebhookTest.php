@@ -218,4 +218,72 @@ class StudentPracticeGradingAndWebhookTest extends TestCase
         $student->refresh();
         $this->assertEquals(100, $student->tokens); // Still 100, not 150!
     }
+
+    public function test_theory_questions_display_correct_answer_from_model_answer_and_grade_fairly(): void
+    {
+        $student = $this->createStudent(freeQuestions: 10, tokens: 10);
+
+        // Create a theory question where correct_answer is null and model_answer is populated
+        $q = QuestionBank::create([
+            'lecturer_id' => $student->id,
+            'created_by' => $student->id,
+            'topic' => 'Typing Skills',
+            'question_text' => 'What does WPM stand for and why is it important?',
+            'question_type' => 'theory',
+            'difficulty' => 'medium',
+            'correct_answer' => null,
+            'model_answer' => 'Words Per Minute (WPM) measures typing speed and typing efficiency.',
+            'marking_scheme' => 'Mentions Words Per Minute and typing speed/efficiency.',
+            'suggested_marks' => 1,
+            'is_active' => true,
+        ]);
+
+        $session = UserPracticeSession::create([
+            'user_id' => $student->id,
+            'topic' => 'Typing Skills',
+            'questions' => [$q->id],
+        ]);
+
+        // Submit answer with keywords 'words per minute'
+        $submitResponse = $this->actingAs($student)
+            ->postJson(route('student.practice.submit', ['session' => $session->id]), [
+                'responses' => [
+                    $q->id => 'words per minute',
+                ],
+            ]);
+
+        $submitResponse->assertOk();
+        $sessionData = $submitResponse->json('practiceSession');
+        $this->assertNotNull($sessionData);
+
+        $graded = $sessionData['responses'][(string) $q->id] ?? null;
+        $this->assertNotNull($graded);
+
+        // Verify correct_answer and correct_answer_text are NOT null or empty
+        $this->assertEquals('Words Per Minute (WPM) measures typing speed and typing efficiency.', $graded['correct_answer']);
+        $this->assertEquals('Words Per Minute (WPM) measures typing speed and typing efficiency.', $graded['correct_answer_text']);
+        $this->assertEquals('words per minute', $graded['user_answer']);
+
+        // Verify it was fairly evaluated with marks awarded (local keyword matching)
+        $this->assertGreaterThanOrEqual(0.5, (float) $graded['marks']);
+        $this->assertNotEmpty($graded['ai_feedback']);
+
+        // Verify the questions array in the response has correct_option and model_answer populated
+        $questionsInResponse = $submitResponse->json('questions');
+        $this->assertNotEmpty($questionsInResponse);
+        $this->assertEquals(
+            'Words Per Minute (WPM) measures typing speed and typing efficiency.',
+            $questionsInResponse[0]['correct_option']
+        );
+        $this->assertEquals(
+            'Words Per Minute (WPM) measures typing speed and typing efficiency.',
+            $questionsInResponse[0]['model_answer']
+        );
+
+        // Verify Inertia result view also loads it cleanly
+        $session->refresh();
+        $resultResponse = $this->actingAs($student)
+            ->get(route('student.practice.result', ['session' => $session->id]));
+        $resultResponse->assertOk();
+    }
 }
