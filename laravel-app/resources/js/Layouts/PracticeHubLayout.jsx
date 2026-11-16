@@ -127,7 +127,8 @@ export default function PracticeHubLayout({ children }) {
             </header>
             <main className="mx-auto max-w-7xl px-3 py-3 sm:px-6 sm:py-8 pb-32 sm:pb-8 lg:px-8">{children}</main>
             <footer className="border-t border-theme-line py-6 sm:py-8 text-center text-xs text-theme-dim px-3">
-                Practice attempts build learning analytics for personalized revision. No proctoring on this hub.
+                <p>Practice attempts build learning analytics for personalized revision. No proctoring on this hub.</p>
+                <p className="mt-1 text-theme-muted">© {new Date().getFullYear()} Assessiva · Built by <span className="font-semibold text-theme-strong">TRAINOVA ENTERPRISE</span></p>
             </footer>
             {auth.user?.role === 'user' && (
                 <FreeTokensModal 
