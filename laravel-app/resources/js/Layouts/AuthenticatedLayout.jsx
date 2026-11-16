@@ -14,33 +14,15 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex items-center gap-3">
-                            <Link
-                                href="/"
-                                className="theme-toggle-btn group inline-flex !h-9 sm:!h-10 !w-auto items-center gap-1.5 px-2.5 sm:px-3 text-xs font-semibold shadow-sm no-underline"
-                                title="Go to Home page"
-                                aria-label="Go to Home page"
-                            >
-                                <svg
-                                    className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                    />
-                                </svg>
-                                <span className="hidden sm:inline font-semibold">Home</span>
-                            </Link>
-
-                            <div className="h-5 w-px bg-theme-line hidden sm:block" />
-
                             <div className="flex shrink-0 items-center">
-                                <Link href="/" className="flex items-center gap-2">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-ai-accent" />
+                                <Link
+                                    href="/"
+                                    className="flex items-center gap-2 no-underline group"
+                                    title="Go to Home page"
+                                    aria-label="Go to Home page"
+                                >
+                                    <ApplicationLogo className="block h-9 w-auto fill-current text-ai-accent transition-transform group-hover:scale-105" />
+                                    <span className="font-display text-lg font-bold text-theme-strong">Assessiva</span>
                                 </Link>
                             </div>
 

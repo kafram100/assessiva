@@ -7,7 +7,7 @@ import { Link, usePage } from '@inertiajs/react';
 import React, { useState, useEffect } from 'react';
 import FreeTokensModal from '@/Components/Student/FreeTokensModal';
 
-export default function PracticeHubLayout({ children, backHref = '/', backLabel = 'Home' }) {
+export default function PracticeHubLayout({ children }) {
     const { auth } = usePage().props;
     const [showFreeTokensModal, setShowFreeTokensModal] = useState(false);
 
@@ -26,35 +26,16 @@ export default function PracticeHubLayout({ children, backHref = '/', backLabel 
             <FlashBanner />
             <header className="sticky top-0 z-40 border-b border-theme-line backdrop-blur-xl bg-[color:var(--topbar-bg)]">
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-1 sm:gap-4 px-3 py-2.5 sm:px-6 sm:py-3.5 lg:px-8">
-                    <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <Link
-                            href={backHref}
-                            className="theme-toggle-btn group inline-flex !h-8 sm:!h-10 !w-auto items-center gap-1 px-2 sm:px-3 text-xs font-semibold shadow-sm no-underline shrink-0"
+                            href="/"
+                            className="flex items-center gap-2 sm:gap-3 no-underline group min-w-0"
                             title="Go to Home page"
                             aria-label="Go to Home page"
                         >
-                            <svg
-                                className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                />
-                            </svg>
-                            <span className="hidden sm:inline font-semibold">{backLabel}</span>
-                        </Link>
-
-                        <div className="h-5 w-px bg-theme-line hidden sm:block" />
-
-                        <Link href="/" className="flex items-center gap-1.5 sm:gap-3 no-underline group min-w-0">
-                            <ApplicationLogo className="h-7 sm:h-9 w-auto fill-ai-accent transition-transform group-hover:scale-105 shrink-0" />
-                            <div className="hidden sm:block">
-                                <div className="font-display text-base sm:text-lg font-bold text-theme-strong">
+                            <ApplicationLogo className="h-8 sm:h-9 w-auto fill-ai-accent transition-transform group-hover:scale-105 shrink-0" />
+                            <div className="min-w-0">
+                                <div className="font-display text-base sm:text-lg font-bold text-theme-strong truncate">
                                     {auth.user?.role === 'user' ? 'Assessiva Practice' : 'Assessiva Practice Hub'}
                                 </div>
                             </div>
